@@ -19,7 +19,7 @@
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
     body { background-color: var(--bg); color: var(--text); padding-bottom: 30px; -webkit-tap-highlight-color: transparent; }
     
-    /* Animated Wave Header */
+    /* Header */
     .header-container { position: relative; background: linear-gradient(180deg, #03045e 0%, #0077b6 100%); padding: 20px 15px 35px; text-align: center; overflow: hidden; }
     .header-title { font-size: 1.4rem; font-weight: 800; letter-spacing: 1px; color: #fff; text-shadow: 0 2px 4px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; gap: 8px; }
     .wave-bg { position: absolute; bottom: 0; left: 0; width: 200%; height: 20px; background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" preserveAspectRatio="none"><path d="M0,0 C150,90 350,-40 500,40 C650,120 900,10 1200,40 L1200,120 L0,120 Z" fill="%230d1b2a"></path></svg>') repeat-x; animation: wave 12s linear infinite; }
@@ -38,9 +38,23 @@
     button:active { opacity: 0.8; }
     .btn-icon { flex: 0 0 42px; width: 42px; text-align: center; padding: 0; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; }
     
-    .mode-toggle { display: flex; background: #0d1b2a; border-radius: 8px; padding: 3px; border: 1px solid var(--accent); }
+    .mode-toggle { display: flex; background: #0d1b2a; border-radius: 8px; padding: 3px; border: 1px solid var(--accent); margin-top: 10px; }
     .mode-btn { border: none; background: transparent; color: var(--text-muted); font-weight: bold; padding: 8px; border-radius: 6px; font-size: 0.85rem; flex: 1; text-align: center; }
     .mode-btn.active { background: var(--accent); color: #000; }
+
+    /* 8-Hour Hourly Projection Section */
+    .hourly-title { font-size: 0.8rem; font-weight: bold; color: var(--accent); text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px; display: flex; justify-content: space-between; }
+    .hourly-scroll { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 5px; scrollbar-width: none; }
+    .hourly-scroll::-webkit-scrollbar { display: none; }
+    .hourly-card { background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 8px; flex: 0 0 90px; text-align: center; }
+    .hourly-time { font-size: 0.75rem; color: var(--text-muted); font-weight: bold; margin-bottom: 4px; }
+    .hourly-temp { font-size: 0.95rem; font-weight: bold; color: #fff; }
+    .hourly-wind { font-size: 0.75rem; color: var(--accent); margin: 3px 0; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 3px; }
+    .wind-arrow { display: inline-block; font-size: 0.85rem; transition: transform 0.3s; }
+    .comfort-badge { font-size: 0.65rem; padding: 2px 4px; border-radius: 4px; font-weight: bold; margin-top: 4px; display: block; }
+    .comfort-good { background: rgba(56,176,0,0.2); color: var(--good); }
+    .comfort-mod { background: rgba(255,183,3,0.2); color: var(--mod); }
+    .comfort-poor { background: rgba(217,4,41,0.2); color: var(--poor); }
 
     /* Summary Dashboard */
     .metrics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
@@ -105,6 +119,15 @@
         <button id="refreshBtn" class="btn-icon" title="Refresh">🔄</button>
       </div>
 
+      <!-- 8-Hour Weather & Wind Projection -->
+      <div style="margin-top: 12px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px;">
+        <div class="hourly-title">
+          <span>8-Hour Wind & Comfort Projection</span>
+          <span id="windyLink" style="text-transform: none; text-decoration: underline; cursor: pointer; color: var(--accent);" onclick="openWindy()">🌐 External Map</span>
+        </div>
+        <div id="hourlyContainer" class="hourly-scroll">Loading projection...</div>
+      </div>
+
       <!-- Environment Toggle -->
       <div class="mode-toggle">
         <div id="surfModeBtn" class="mode-btn active" onclick="setMode('surf')">🌊 Surf / Beach</div>
@@ -122,7 +145,7 @@
           <div id="m-surf" class="metric-val">--</div>
         </div>
         <div class="metric-box">
-          <div class="metric-label">Wind / Press</div>
+          <div class="metric-label">Avg Wind / Press</div>
           <div id="m-wind" class="metric-val">--</div>
         </div>
       </div>
@@ -205,9 +228,9 @@
   </div>
 
   <script>
-    // State Variables
     let currentMode = 'surf';
     let weatherCache = {};
+    let rawHourly = [];
     let defaultSpecies = [
       { id: 'kob', name: 'Dusky Kob (Cob)', env: 'both', minTemp: 18, maxTemp: 23, tidePref: 'high', duskBonus: true },
       { id: 'flathead', name: 'Bartail Flathead', env: 'harbour', minTemp: 20, maxTemp: 26, tidePref: 'ebb', duskBonus: false },
@@ -217,7 +240,6 @@
       { id: 'steenbras', name: 'White Steenbras', env: 'surf', minTemp: 16, maxTemp: 21, tidePref: 'rising', duskBonus: false }
     ];
 
-    // Initialize Page
     document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('datePicker').valueAsDate = new Date();
       loadSpeciesOptions();
@@ -237,21 +259,21 @@
       calculateScores();
     }
 
-    // Fetch Weather & Marine Data (Multi-Model Consensus)
     async function fetchForecast() {
       const loc = document.getElementById('locationSelect').value.split(',');
       const date = document.getElementById('datePicker').value;
       const lat = loc[0], lon = loc[1];
 
-      document.getElementById('speciesContainer').innerHTML = "Fetching multi-model ensemble forecasts...";
+      document.getElementById('speciesContainer').innerHTML = "Fetching multi-model forecasts...";
       document.getElementById('statusBanner').style.display = 'none';
 
-      const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=sunrise,sunset&hourly=temperature_2m,surface_pressure,wind_speed_10m&start_date=${date}&end_date=${date}&timezone=auto`;
+      // Open-Meteo wind speed is set explicitly to kmh (wind_speed_unit=kmh)
+      const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=sunrise,sunset&hourly=temperature_2m,surface_pressure,wind_speed_10m,wind_direction_10m&wind_speed_unit=kmh&start_date=${date}&end_date=${date}&timezone=auto`;
       const marineUrl = `https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lon}&hourly=wave_height,wave_period,ocean_current_velocity&start_date=${date}&end_date=${date}&timezone=auto`;
 
       try {
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 5000); // 5s Strict Timeout
+        const timeout = setTimeout(() => controller.abort(), 5000);
 
         const [wRes, mRes] = await Promise.all([
           fetch(weatherUrl, { signal: controller.signal }),
@@ -262,23 +284,29 @@
         const wData = await wRes.json();
         const mData = await mRes.json();
 
-        // Process Averages across hourly slices
+        rawHourly = wData.hourly.time.map((t, idx) => ({
+          time: t.split('T')[1].substring(0,5),
+          temp: Math.round(wData.hourly.temperature_2m[idx]),
+          wind: Math.round(wData.hourly.wind_speed_10m[idx]), // in km/h
+          dir: wData.hourly.wind_direction_10m[idx]
+        }));
+
         weatherCache = {
           sunrise: wData.daily.sunrise[0].split('T')[1],
           sunset: wData.daily.sunset[0].split('T')[1],
           temp: Math.round(wData.hourly.temperature_2m.reduce((a,b)=>a+b,0)/24),
           pressure: Math.round(wData.hourly.surface_pressure.reduce((a,b)=>a+b,0)/24),
-          wind: Math.round(wData.hourly.wind_speed_10m.reduce((a,b)=>a+b,0)/24),
+          wind: Math.round(wData.hourly.wind_speed_10m.reduce((a,b)=>a+b,0)/24), // avg km/h
           waveHeight: mData.hourly ? (mData.hourly.wave_height.reduce((a,b)=>a+b,0)/24).toFixed(1) : "0.5",
           wavePeriod: mData.hourly ? Math.round(mData.hourly.wave_period.reduce((a,b)=>a+b,0)/24) : 9
         };
 
         localStorage.setItem('cachedForecast', JSON.stringify(weatherCache));
         updateDashboard();
+        renderHourlyProjection();
         calculateScores();
 
       } catch (err) {
-        // Offline / Timeout Fallback
         document.getElementById('statusBanner').style.display = 'block';
         const cached = localStorage.getItem('cachedForecast');
         if (cached) {
@@ -291,13 +319,55 @@
       }
     }
 
-    function updateDashboard() {
-      document.getElementById('m-tide').innerText = "Rising"; // Mathematical approximation
-      document.getElementById('m-surf').innerText = currentMode === 'surf' ? `${weatherCache.waveHeight}m @ ${weatherCache.wavePeriod}s` : "0.4m/s";
-      document.getElementById('m-wind').innerText = `${weatherCache.wind}kt / ${weatherCache.pressure}hPa`;
+    function renderHourlyProjection() {
+      if (!rawHourly || rawHourly.length === 0) return;
+
+      const currentHour = new Date().getHours();
+      let startIdx = rawHourly.findIndex(h => parseInt(h.time.split(':')[0]) >= currentHour);
+      if (startIdx === -1) startIdx = 0;
+
+      const next8Hours = rawHourly.slice(startIdx, startIdx + 8);
+
+      const html = next8Hours.map(h => {
+        let comfort = '😊 Pleasant';
+        let comfortClass = 'comfort-good';
+
+        // Thresholds based on km/h: >30km/h or <15°C is unpleasant, >20km/h is breezy
+        if (h.wind > 30 || h.temp < 15) {
+          comfort = '🥶 Unpleasant';
+          comfortClass = 'comfort-poor';
+        } else if (h.wind > 20) {
+          comfort = '💨 Breezy';
+          comfortClass = 'comfort-mod';
+        }
+
+        return `
+          <div class="hourly-card">
+            <div class="hourly-time">${h.time}</div>
+            <div class="hourly-temp">${h.temp}°C</div>
+            <div class="hourly-wind">
+              <span class="wind-arrow" style="transform: rotate(${h.dir}deg)">⬆</span>
+              ${h.wind} km/h
+            </div>
+            <span class="comfort-badge ${comfortClass}">${comfort}</span>
+          </div>
+        `;
+      }).join('');
+
+      document.getElementById('hourlyContainer').innerHTML = html;
     }
 
-    // Scoring Engine + Sun Position Bonus
+    function openWindy() {
+      const loc = document.getElementById('locationSelect').value.split(',');
+      window.open(`https://www.windy.com/${loc[0]}/${loc[1]}?wind,${loc[0]},${loc[1]},11`, '_blank');
+    }
+
+    function updateDashboard() {
+      document.getElementById('m-tide').innerText = "Rising";
+      document.getElementById('m-surf').innerText = currentMode === 'surf' ? `${weatherCache.waveHeight}m @ ${weatherCache.wavePeriod}s` : "0.4m/s";
+      document.getElementById('m-wind').innerText = `${weatherCache.wind} km/h / ${weatherCache.pressure} hPa`;
+    }
+
     function calculateScores() {
       const customSpecs = JSON.parse(localStorage.getItem('customSpecies') || '[]');
       const allSpecies = [...defaultSpecies, ...customSpecs];
@@ -308,16 +378,14 @@
       allSpecies.forEach(sp => {
         if (sp.env !== 'both' && sp.env !== currentMode) return;
 
-        let score = 60; // Base Score
+        let score = 60;
         let bonuses = [];
 
-        // Water Temp Alignment
         if (weatherCache.temp >= sp.minTemp && weatherCache.temp <= sp.maxTemp) {
           score += 15;
           bonuses.push('🌡️ Ideal Temp');
         }
 
-        // Sun Window Bonus (Dawn/Dusk +15)
         if (sp.duskBonus) {
           score += 15;
           bonuses.push('🌅 Dawn/Dusk Peak');
@@ -326,14 +394,13 @@
           bonuses.push('☀️ Daylight Active');
         }
 
-        // Self-Learning Engine Adjustment (Checks logbook)
         const speciesLogs = logs.filter(l => l.species === sp.name);
         if (speciesLogs.length > 0) {
           score += 10;
           bonuses.push(`🧠 Learned History (+10)`);
         }
 
-        score = Math.min(score, 98); // Cap score
+        score = Math.min(score, 98);
         const scoreClass = score >= 80 ? 'score-good' : score >= 60 ? 'score-mod' : 'score-poor';
 
         html += `
@@ -354,7 +421,6 @@
       document.getElementById('speciesContainer').innerHTML = html || 'No target species defined for this environment.';
     }
 
-    // Catch Logbook & Storage
     function saveCatchLog() {
       const species = document.getElementById('logSpeciesSelect').value;
       const len = document.getElementById('logLength').value;
@@ -401,7 +467,6 @@
       `).join('');
     }
 
-    // Helper Functions
     function openModal(id) {
       if (id === 'viewLogsModal') loadLogsUI();
       document.getElementById(id).style.display = 'flex';
