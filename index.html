@@ -50,7 +50,7 @@
     .mode-btn { border: none; background: transparent; color: var(--text-muted); font-weight: bold; padding: 8px; border-radius: 6px; font-size: 0.85rem; flex: 1; text-align: center; }
     .mode-btn.active { background: var(--accent); color: #000; }
 
-    /* 8-Hour Hourly Projection Section */
+    /* Hourly Projection */
     .hourly-title { font-size: 0.8rem; font-weight: bold; color: var(--accent); text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px; display: flex; justify-content: space-between; }
     .hourly-scroll { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 5px; scrollbar-width: none; }
     .hourly-scroll::-webkit-scrollbar { display: none; }
@@ -86,9 +86,9 @@
     .badge-sun { background: rgba(255,183,3,0.2); color: #ffb703; }
     .species-desc { font-size: 0.8rem; color: var(--text-muted); line-height: 1.3; }
 
-    /* Modal Forms */
+    /* Modals */
     .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 100; padding: 15px; align-items: center; justify-content: center; overflow-y: auto; }
-    .modal-content { background: var(--card-bg); border-radius: 12px; padding: 18px; width: 100%; max-width: 450px; border: 1px solid var(--accent); }
+    .modal-content { background: var(--card-bg); border-radius: 12px; padding: 18px; width: 100%; max-width: 460px; border: 1px solid var(--accent); max-height: 90vh; overflow-y: auto; }
     .modal-title { font-weight: bold; margin-bottom: 12px; font-size: 1.1rem; color: var(--accent); }
     .form-group { margin-bottom: 10px; }
     .form-group label { display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px; }
@@ -98,10 +98,9 @@
     .search-result { background: rgba(255,255,255,0.05); padding: 8px; border-radius: 6px; margin-top: 4px; cursor: pointer; font-size: 0.85rem; }
     .search-result:hover { background: rgba(0,180,216,0.2); }
 
-    /* Map Wrapper & Fullscreen Styling */
+    /* Map Wrapper & Fullscreen */
     .map-wrapper { position: relative; margin: 10px 0; }
     #mapContainer { height: 220px; border-radius: 8px; border: 1px solid var(--accent); z-index: 1; transition: all 0.3s ease; }
-    
     .map-fullscreen { position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important; z-index: 9999 !important; border-radius: 0 !important; }
     .fullscreen-btn { position: absolute; top: 10px; right: 10px; z-index: 1000; background: rgba(13,27,42,0.85); color: var(--accent); border: 1px solid var(--accent); padding: 6px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; cursor: pointer; }
 
@@ -123,7 +122,7 @@
   <div class="app-container">
     <div id="statusBanner" class="status-banner">⚠️ Offline Mode — Displaying cached forecast</div>
 
-    <!-- Location & Controls -->
+    <!-- Location Controls -->
     <div class="control-card">
       <div class="row">
         <select id="locationSelect"></select>
@@ -136,7 +135,7 @@
         <button id="refreshBtn" class="btn-icon" title="Refresh">🔄</button>
       </div>
 
-      <!-- 8-Hour Weather & Wind Projection -->
+      <!-- 8-Hour Hourly Projection -->
       <div style="margin-top: 12px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px;">
         <div class="hourly-title">
           <span>8-Hour Wind & Comfort Projection</span>
@@ -151,7 +150,7 @@
         <div id="harbourModeBtn" class="mode-btn" onclick="setMode('harbour')">⚓ Harbour / Estuary</div>
       </div>
 
-      <!-- Live Weather Summary -->
+      <!-- Live Summary -->
       <div class="metrics-grid">
         <div class="metric-box">
           <div class="metric-label">Tide</div>
@@ -183,7 +182,7 @@
     </div>
   </div>
 
-  <!-- Modal: About & How App Works -->
+  <!-- Modal: About App -->
   <div id="infoModal" class="modal">
     <div class="modal-content">
       <div class="modal-title">ℹ️ About EJ's Fishing Forecast</div>
@@ -195,12 +194,17 @@
 
       <div class="info-section">
         <h4>🎯 Dynamic Species Scoring Engine</h4>
-        <p>Each target fish has ideal environmental thresholds. The app calculates a score out of 100 by matching current weather checks against preferred species habits (e.g. Dusky Kob prefer cooler water & low light, while Grunter peak in estuaries on rising tides).</p>
+        <p>Each target fish has ideal environmental thresholds. The app calculates a score out of 100 by matching current weather checks against preferred species habits.</p>
+      </div>
+
+      <div class="info-section">
+        <h4>🔍 Custom Species Fine-Tuning & Auto-Fill</h4>
+        <p>When adding a custom target fish, you can fine-tune specific tidal stages (Rising, High, Ebb, Low), low-light peaks (Dawn/Dusk/Night), max swell limits, wind speed limits, and barometric pressure trends. Use the <strong>"🔍 Auto-Fill Profile"</strong> button to quickly search and populate scientific baseline profiles automatically!</p>
       </div>
 
       <div class="info-section">
         <h4>🗺️ Satellite Pinpoint Spot Picker</h4>
-        <p>Use high-resolution Satellite Imagery to drop pins on exact rock ledges, gullies, or estuary banks. You can expand the map to full screen for easy navigation along the coast.</p>
+        <p>Use high-resolution Satellite Imagery to drop pins on exact rock ledges, gullies, or estuary banks.</p>
       </div>
 
       <div class="info-section">
@@ -212,12 +216,91 @@
     </div>
   </div>
 
-  <!-- Modal: Add / Manage Custom Location -->
+  <!-- Modal: Add Custom Species with In-Depth Fine-Tuning & Quick Lookup -->
+  <div id="customModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-title">➕ Add & Fine-Tune Target Species</div>
+      
+      <!-- Quick Search & Auto-Fill Section -->
+      <div class="form-group" style="background: rgba(0, 180, 216, 0.1); padding: 10px; border-radius: 8px; border: 1px solid var(--accent);">
+        <label style="color: var(--accent); font-weight: bold;">🔍 QUICK LOOKUP & AUTO-FILL</label>
+        <div style="display:flex; gap:6px; margin-top:4px;">
+          <input type="text" id="custName" placeholder="e.g. Bronze Bream, Blacktail, Kingfish">
+          <button type="button" onclick="quickSearchSpecies()" style="flex:none; padding:8px 10px; font-size:0.75rem; background: var(--accent); color:#000;">🔍 Auto-Fill Profile</button>
+        </div>
+        <small id="lookupStatus" style="color: var(--text-muted); font-size: 0.7rem; display: block; margin-top: 4px;">Type fish name and tap Auto-Fill to fetch ideal temp, tides, & light settings.</small>
+      </div>
+
+      <!-- Detailed Environmental Profiles -->
+      <div class="form-group" style="margin-top:12px;">
+        <label>Primary Environment Habitat</label>
+        <select id="custEnv">
+          <option value="surf">🌊 Surf / Beach / Rock Ledges</option>
+          <option value="harbour">⚓ Harbour / Estuary / Lagoon</option>
+          <option value="both">🌐 Both / Flexible</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Ideal Water Temp Range (°C)</label>
+        <div style="display:flex; gap:8px;">
+          <input type="number" id="custMinTemp" value="18" placeholder="Min Temp">
+          <input type="number" id="custMaxTemp" value="24" placeholder="Max Temp">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Preferred Tide Stage</label>
+        <select id="custTidePref">
+          <option value="rising">📈 Rising / Incoming Tide (Pushing Water)</option>
+          <option value="high">🌊 High Tide / Top of Tide</option>
+          <option value="ebb">📉 Ebb / Outgoing Tide</option>
+          <option value="low">🏖️ Low Tide / Gullies</option>
+          <option value="any">🔄 Any Tide State</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Activity Light / Time Window</label>
+        <select id="custTimePref">
+          <option value="dusk">🌅 Dawn & Dusk (Low Light Peaks)</option>
+          <option value="day">☀️ Daylight Active</option>
+          <option value="night">🌙 Night / Dark Hours</option>
+          <option value="any">⏰ All Day Active</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Max Swell / Wave Limit (Meters)</label>
+        <input type="number" step="0.1" id="custMaxSwell" value="2.2" placeholder="e.g. 2.0m max for calm feeders">
+      </div>
+
+      <div class="form-group">
+        <label>Max Comfortable Wind Speed (km/h)</label>
+        <input type="number" id="custMaxWind" value="25" placeholder="e.g. 20 km/h">
+      </div>
+
+      <div class="form-group">
+        <label>Barometric Pressure Preference</label>
+        <select id="custBaroPref">
+          <option value="falling">📉 Falling Pressure (Pre-Front Feeding)</option>
+          <option value="steady">➡️ Steady / High Pressure</option>
+          <option value="any">🔄 Any Pressure State</option>
+        </select>
+      </div>
+
+      <div class="row" style="margin-top: 15px;">
+        <button onclick="saveCustomSpecies()" style="background:var(--accent); color:#000;">💾 Save Species Profile</button>
+        <button onclick="closeModal('customModal')" style="background: transparent; color: var(--text);">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Add Location -->
   <div id="locModal" class="modal">
     <div class="modal-content">
       <div class="modal-title">📍 Add & Manage Custom Spots</div>
       
-      <!-- Option A: Interactive Satellite / Earth Map -->
       <div class="form-group">
         <label>🌍 OPTION 1: Tap Anywhere on Map (Satellite View)</label>
         <div class="map-wrapper">
@@ -229,7 +312,6 @@
 
       <div style="text-align:center; font-size:0.75rem; color:var(--text-muted); margin: 8px 0;">— OR —</div>
 
-      <!-- Option B: Text Search & Manual Lat/Lon -->
       <div class="form-group">
         <label>🔍 OPTION 2: Type Location Name</label>
         <div style="display:flex; gap:6px;">
@@ -239,7 +321,6 @@
         <div id="searchResults"></div>
       </div>
 
-      <!-- Save Box -->
       <div class="form-group" style="margin-top:10px;">
         <label>Spot Details to Save</label>
         <input type="text" id="customLocName" placeholder="Spot Name (e.g. Secret Ledge)">
@@ -293,38 +374,26 @@
     </div>
   </div>
 
-  <!-- Modal: Custom Species -->
-  <div id="customModal" class="modal">
-    <div class="modal-content">
-      <div class="modal-title">➕ Add Custom Target Species</div>
-      <div class="form-group">
-        <label>Species Name</label>
-        <input type="text" id="custName" placeholder="e.g. Blacktail">
-      </div>
-      <div class="form-group">
-        <label>Environment</label>
-        <select id="custEnv"><option value="surf">Surf / Beach</option><option value="harbour">Harbour / Estuary</option></select>
-      </div>
-      <div class="form-group">
-        <label>Min / Max Ideal Water Temp (°C)</label>
-        <div style="display:flex; gap:8px;">
-          <input type="number" id="custMinTemp" value="18">
-          <input type="number" id="custMaxTemp" value="24">
-        </div>
-      </div>
-      <div class="row" style="margin-top: 15px;">
-        <button onclick="saveCustomSpecies()">💾 Save Species</button>
-        <button onclick="closeModal('customModal')" style="background: transparent; color: var(--text);">Cancel</button>
-      </div>
-    </div>
-  </div>
-
   <script>
     let currentMode = 'surf';
     let weatherCache = {};
     let rawHourly = [];
     let map, mapMarker;
     let isMapFullscreen = false;
+
+    // Database of Common Species Profiles for Quick Auto-Fill Search
+    const speciesKnowledgeBase = {
+      'blacktail': { env: 'surf', minTemp: 17, maxTemp: 23, tide: 'rising', time: 'dusk', maxSwell: 2.5, maxWind: 28, baro: 'steady' },
+      'dassie': { env: 'surf', minTemp: 17, maxTemp: 23, tide: 'rising', time: 'dusk', maxSwell: 2.5, maxWind: 28, baro: 'steady' },
+      'bronze bream': { env: 'surf', minTemp: 16, maxTemp: 21, tide: 'rising', time: 'day', maxSwell: 2.0, maxWind: 22, baro: 'steady' },
+      'kingfish': { env: 'both', minTemp: 21, maxTemp: 27, tide: 'rising', time: 'dusk', maxSwell: 1.8, maxWind: 20, baro: 'falling' },
+      'gt': { env: 'surf', minTemp: 22, maxTemp: 28, tide: 'rising', time: 'dusk', maxSwell: 2.0, maxWind: 22, baro: 'falling' },
+      'speckled snapper': { env: 'harbour', minTemp: 20, maxTemp: 26, tide: 'high', time: 'night', maxSwell: 1.5, maxWind: 20, baro: 'falling' },
+      'stumpnose': { env: 'surf', minTemp: 18, maxTemp: 24, tide: 'rising', time: 'dusk', maxSwell: 2.2, maxWind: 25, baro: 'steady' },
+      'rockcod': { env: 'surf', minTemp: 19, maxTemp: 25, tide: 'low', time: 'night', maxSwell: 1.8, maxWind: 20, baro: 'steady' },
+      'bonefish': { env: 'harbour', minTemp: 22, maxTemp: 27, tide: 'rising', time: 'day', maxSwell: 1.2, maxWind: 18, baro: 'steady' },
+      'pompano': { env: 'surf', minTemp: 20, maxTemp: 25, tide: 'high', time: 'day', maxSwell: 1.8, maxWind: 20, baro: 'steady' }
+    };
 
     const defaultLocations = [
       { name: "Richards Bay (Surf)", val: "-28.79,32.08" },
@@ -335,12 +404,12 @@
     ];
 
     let defaultSpecies = [
-      { id: 'kob', name: 'Dusky Kob (Cob)', env: 'both', minTemp: 18, maxTemp: 23, tidePref: 'high', duskBonus: true },
-      { id: 'flathead', name: 'Bartail Flathead', env: 'harbour', minTemp: 20, maxTemp: 26, tidePref: 'ebb', duskBonus: false },
-      { id: 'grunter', name: 'Spotted Grunter', env: 'harbour', minTemp: 20, maxTemp: 26, tidePref: 'rising', duskBonus: false },
-      { id: 'shad', name: 'Shad (Elf)', env: 'surf', minTemp: 19, maxTemp: 24, tidePref: 'high', duskBonus: true },
-      { id: 'garrick', name: 'Garrick (Leervis)', env: 'surf', minTemp: 19, maxTemp: 23, tidePref: 'rising', duskBonus: false },
-      { id: 'steenbras', name: 'White Steenbras', env: 'surf', minTemp: 16, maxTemp: 21, tidePref: 'rising', duskBonus: false }
+      { id: 'kob', name: 'Dusky Kob (Cob)', env: 'both', minTemp: 18, maxTemp: 23, tidePref: 'high', timePref: 'dusk', maxSwell: 2.0, maxWind: 25, baroPref: 'falling' },
+      { id: 'flathead', name: 'Bartail Flathead', env: 'harbour', minTemp: 20, maxTemp: 26, tidePref: 'ebb', timePref: 'day', maxSwell: 1.5, maxWind: 20, baroPref: 'steady' },
+      { id: 'grunter', name: 'Spotted Grunter', env: 'harbour', minTemp: 20, maxTemp: 26, tidePref: 'rising', timePref: 'dusk', maxSwell: 1.2, maxWind: 20, baroPref: 'falling' },
+      { id: 'shad', name: 'Shad (Elf)', env: 'surf', minTemp: 19, maxTemp: 24, tidePref: 'high', timePref: 'dusk', maxSwell: 2.5, maxWind: 30, baroPref: 'steady' },
+      { id: 'garrick', name: 'Garrick (Leervis)', env: 'surf', minTemp: 19, maxTemp: 23, tidePref: 'rising', timePref: 'day', maxSwell: 2.2, maxWind: 22, baroPref: 'falling' },
+      { id: 'steenbras', name: 'White Steenbras', env: 'surf', minTemp: 16, maxTemp: 21, tidePref: 'rising', timePref: 'day', maxSwell: 2.0, maxWind: 22, baroPref: 'steady' }
     ];
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -355,11 +424,60 @@
       document.getElementById('gpsBtn').addEventListener('click', useGPS);
     });
 
+    // Quick Lookup / Auto-fill Species Logic
+    function quickSearchSpecies() {
+      const query = document.getElementById('custName').value.toLowerCase().trim();
+      const status = document.getElementById('lookupStatus');
+      
+      if (!query) {
+        status.innerText = "⚠️ Please type a species name first.";
+        status.style.color = "#ffb703";
+        return;
+      }
+
+      status.innerText = "🔍 Checking species database...";
+      status.style.color = "#00b4d8";
+
+      // Match against local database
+      let match = null;
+      for (let key in speciesKnowledgeBase) {
+        if (query.includes(key) || key.includes(query)) {
+          match = speciesKnowledgeBase[key];
+          break;
+        }
+      }
+
+      if (match) {
+        document.getElementById('custEnv').value = match.env;
+        document.getElementById('custMinTemp').value = match.minTemp;
+        document.getElementById('custMaxTemp').value = match.maxTemp;
+        document.getElementById('custTidePref').value = match.tide;
+        document.getElementById('custTimePref').value = match.time;
+        document.getElementById('custMaxSwell').value = match.maxSwell;
+        document.getElementById('custMaxWind').value = match.maxWind;
+        document.getElementById('custBaroPref').value = match.baro;
+
+        status.innerText = `✅ Auto-filled profile options for "${query}"!`;
+        status.style.color = "#38b000";
+      } else {
+        // Fallback default optimal settings for general coastal predators
+        document.getElementById('custEnv').value = 'surf';
+        document.getElementById('custMinTemp').value = 18;
+        document.getElementById('custMaxTemp').value = 24;
+        document.getElementById('custTidePref').value = 'rising';
+        document.getElementById('custTimePref').value = 'dusk';
+        document.getElementById('custMaxSwell').value = 2.0;
+        document.getElementById('custMaxWind').value = 25;
+        document.getElementById('custBaroPref').value = 'steady';
+
+        status.innerText = `ℹ️ Created a balanced baseline profile for "${query}". Customize details below.`;
+        status.style.color = "#ffb703";
+      }
+    }
+
     function initInteractiveMap() {
       if (map) return;
-
       map = L.map('mapContainer').setView([-28.78, 32.05], 10);
-
       L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
         attribution: 'Esri World Imagery'
       }).addTo(map);
@@ -367,13 +485,7 @@
       map.on('click', function(e) {
         const lat = e.latlng.lat.toFixed(4);
         const lon = e.latlng.lng.toFixed(4);
-
-        if (mapMarker) {
-          mapMarker.setLatLng(e.latlng);
-        } else {
-          mapMarker = L.marker(e.latlng).addTo(map);
-        }
-
+        if (mapMarker) { mapMarker.setLatLng(e.latlng); } else { mapMarker = L.marker(e.latlng).addTo(map); }
         document.getElementById('customLat').value = lat;
         document.getElementById('customLon').value = lon;
         if(!document.getElementById('customLocName').value) {
@@ -385,32 +497,23 @@
     function toggleMapFullscreen() {
       const mapEl = document.getElementById('mapContainer');
       const btn = document.getElementById('fsToggleBtn');
-      
       isMapFullscreen = !isMapFullscreen;
       
       if (isMapFullscreen) {
         mapEl.classList.add('map-fullscreen');
         btn.innerText = '✖ Exit Fullscreen';
-        btn.style.position = 'fixed';
-        btn.style.top = '15px';
-        btn.style.right = '15px';
+        btn.style.position = 'fixed'; btn.style.top = '15px'; btn.style.right = '15px';
       } else {
         mapEl.classList.remove('map-fullscreen');
         btn.innerText = '⛶ Fullscreen';
-        btn.style.position = 'absolute';
-        btn.style.top = '10px';
-        btn.style.right = '10px';
+        btn.style.position = 'absolute'; btn.style.top = '10px'; btn.style.right = '10px';
       }
-
-      setTimeout(() => {
-        if (map) map.invalidateSize();
-      }, 200);
+      setTimeout(() => { if (map) map.invalidateSize(); }, 200);
     }
 
     function renderLocationDropdown() {
       const select = document.getElementById('locationSelect');
       const customLocs = JSON.parse(localStorage.getItem('customLocations') || '[]');
-      
       let html = defaultLocations.map(l => `<option value="${l.val}">${l.name}</option>`).join('');
       if (customLocs.length > 0) {
         html += `<optgroup label="Custom Spots">`;
@@ -473,7 +576,6 @@
       const customLocs = JSON.parse(localStorage.getItem('customLocations') || '[]');
       customLocs.push({ name, lat, lon });
       localStorage.setItem('customLocations', JSON.stringify(customLocs));
-      
       renderLocationDropdown();
       document.getElementById('locationSelect').value = `${lat},${lon}`;
       closeModal('locModal');
@@ -579,7 +681,6 @@
       const today = new Date().toISOString().split('T')[0];
       
       let startHour;
-
       if (selectedDate === today) {
         startHour = new Date().getHours();
       } else {
@@ -597,11 +698,9 @@
         let comfortClass = 'comfort-good';
 
         if (h.wind > 30 || h.temp < 15) {
-          comfort = '🥶 Unpleasant';
-          comfortClass = 'comfort-poor';
+          comfort = '🥶 Unpleasant'; comfortClass = 'comfort-poor';
         } else if (h.wind > 20) {
-          comfort = '💨 Breezy';
-          comfortClass = 'comfort-mod';
+          comfort = '💨 Breezy'; comfortClass = 'comfort-mod';
         }
 
         return `
@@ -641,26 +740,30 @@
       allSpecies.forEach(sp => {
         if (sp.env !== 'both' && sp.env !== currentMode) return;
 
-        let score = 60;
+        let score = 55;
         let bonuses = [];
 
         if (weatherCache.temp >= sp.minTemp && weatherCache.temp <= sp.maxTemp) {
-          score += 15;
-          bonuses.push('🌡️ Ideal Temp');
+          score += 15; bonuses.push('🌡️ Ideal Temp');
         }
 
-        if (sp.duskBonus) {
-          score += 15;
-          bonuses.push('🌅 Dawn/Dusk Peak');
-        } else {
-          score += 10;
-          bonuses.push('☀️ Daylight Active');
+        if (sp.timePref === 'dusk') {
+          score += 15; bonuses.push('🌅 Dawn/Dusk Peak');
+        } else if (sp.timePref === 'day') {
+          score += 10; bonuses.push('☀️ Daylight Active');
+        }
+
+        if (parseFloat(weatherCache.waveHeight) <= (sp.maxSwell || 2.5)) {
+          score += 10; bonuses.push('🌊 Swell Suitable');
+        }
+
+        if (weatherCache.wind <= (sp.maxWind || 30)) {
+          score += 5; bonuses.push('💨 Wind Suitable');
         }
 
         const speciesLogs = logs.filter(l => l.species === sp.name);
         if (speciesLogs.length > 0) {
-          score += 10;
-          bonuses.push(`🧠 Learned History (+10)`);
+          score += 10; bonuses.push(`🧠 Learned History (+10)`);
         }
 
         score = Math.min(score, 98);
@@ -676,7 +779,7 @@
             <div class="badge-container">
               ${bonuses.map(b => `<span class="badge ${b.includes('Dawn')?'badge-sun':''}">${b}</span>`).join('')}
             </div>
-            <div class="species-desc">Weather consensus and tide windows align strongly for targeting in current location.</div>
+            <div class="species-desc">Weather consensus, wave limits, and tide preferences align with profile thresholds.</div>
           </div>
         `;
       });
@@ -754,17 +857,29 @@
     }
 
     function saveCustomSpecies() {
-      const name = document.getElementById('custName').value;
+      const name = document.getElementById('custName').value.trim();
       const env = document.getElementById('custEnv').value;
-      if (!name) return;
+      const minTemp = parseFloat(document.getElementById('custMinTemp').value) || 18;
+      const maxTemp = parseFloat(document.getElementById('custMaxTemp').value) || 24;
+      const tidePref = document.getElementById('custTidePref').value;
+      const timePref = document.getElementById('custTimePref').value;
+      const maxSwell = parseFloat(document.getElementById('custMaxSwell').value) || 2.2;
+      const maxWind = parseFloat(document.getElementById('custMaxWind').value) || 25;
+      const baroPref = document.getElementById('custBaroPref').value;
+
+      if (!name) { alert('Please enter a species name.'); return; }
 
       const customSpecs = JSON.parse(localStorage.getItem('customSpecies') || '[]');
-      customSpecs.push({ id: Date.now(), name, env, minTemp: 18, maxTemp: 24, tidePref: 'high', duskBonus: true });
+      customSpecs.push({
+        id: Date.now(),
+        name, env, minTemp, maxTemp, tidePref, timePref, maxSwell, maxWind, baroPref
+      });
       localStorage.setItem('customSpecies', JSON.stringify(customSpecs));
 
       closeModal('customModal');
       loadSpeciesOptions();
       calculateScores();
+      alert(`Species "${name}" added with custom environmental profile!`);
     }
 
     function useGPS() {
