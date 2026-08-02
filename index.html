@@ -30,6 +30,8 @@
     .wave-bg { position: absolute; bottom: 0; left: 0; width: 200%; height: 20px; background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" preserveAspectRatio="none"><path d="M0,0 C150,90 350,-40 500,40 C650,120 900,10 1200,40 L1200,120 L0,120 Z" fill="%230d1b2a"></path></svg>') repeat-x; animation: wave 12s linear infinite; }
     @keyframes wave { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
 
+    .info-btn-header { position: absolute; top: 12px; right: 12px; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); color: #fff; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; font-weight: bold; cursor: pointer; z-index: 10; }
+
     /* Layout Controls */
     .app-container { padding: 15px; max-width: 500px; margin: 0 auto; }
     .status-banner { background: rgba(255,183,3,0.15); border: 1px solid var(--mod); color: var(--mod); padding: 8px 12px; border-radius: 8px; font-size: 0.8rem; margin-bottom: 12px; display: none; text-align: center; }
@@ -49,7 +51,7 @@
     .mode-btn.active { background: var(--accent); color: #000; }
 
     /* 8-Hour Hourly Projection Section */
-    .hourly-title { font-size: 0.8rem; font-weight: bold; color: var(--accent); text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px; display: flex; justify-space-between; }
+    .hourly-title { font-size: 0.8rem; font-weight: bold; color: var(--accent); text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px; display: flex; justify-content: space-between; }
     .hourly-scroll { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 5px; scrollbar-width: none; }
     .hourly-scroll::-webkit-scrollbar { display: none; }
     .hourly-card { background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 8px; flex: 0 0 90px; text-align: center; }
@@ -100,9 +102,13 @@
     .map-wrapper { position: relative; margin: 10px 0; }
     #mapContainer { height: 220px; border-radius: 8px; border: 1px solid var(--accent); z-index: 1; transition: all 0.3s ease; }
     
-    /* Fullscreen State for Map */
     .map-fullscreen { position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important; z-index: 9999 !important; border-radius: 0 !important; }
     .fullscreen-btn { position: absolute; top: 10px; right: 10px; z-index: 1000; background: rgba(13,27,42,0.85); color: var(--accent); border: 1px solid var(--accent); padding: 6px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; cursor: pointer; }
+
+    /* Info Tab Styling */
+    .info-section { margin-bottom: 14px; }
+    .info-section h4 { color: var(--accent); font-size: 0.9rem; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+    .info-section p { font-size: 0.8rem; color: var(--text-muted); line-height: 1.4; }
   </style>
 </head>
 <body>
@@ -110,6 +116,7 @@
   <!-- Header -->
   <div class="header-container">
     <div class="header-title">🎣 EJ'S FISHING FORECAST</div>
+    <div class="info-btn-header" onclick="openModal('infoModal')" title="About this App">ℹ️</div>
     <div class="wave-bg"></div>
   </div>
 
@@ -173,6 +180,35 @@
     <div class="row" style="margin-top: 15px;">
       <button onclick="openModal('catchModal')">📷 + Log Catch</button>
       <button onclick="openModal('viewLogsModal')" style="background: var(--card-bg); border: 1px solid var(--accent); color: var(--text);">📊 View Logbook</button>
+    </div>
+  </div>
+
+  <!-- Modal: About & How App Works -->
+  <div id="infoModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-title">ℹ️ About EJ's Fishing Forecast</div>
+      
+      <div class="info-section">
+        <h4>📡 Multi-Model Forecast Background Checks</h4>
+        <p>This app runs real-time automated background checks against global atmospheric and marine forecast models (via Open-Meteo). It cross-references water temperatures, surface pressures, wind directions, swell heights, and daily solar/lunar phases.</p>
+      </div>
+
+      <div class="info-section">
+        <h4>🎯 Dynamic Species Scoring Engine</h4>
+        <p>Each target fish has ideal environmental thresholds. The app calculates a score out of 100 by matching current weather checks against preferred species habits (e.g. Dusky Kob prefer cooler water & low light, while Grunter peak in estuaries on rising tides).</p>
+      </div>
+
+      <div class="info-section">
+        <h4>🗺️ Satellite Pinpoint Spot Picker</h4>
+        <p>Use high-resolution Satellite Imagery to drop pins on exact rock ledges, gullies, or estuary banks. You can expand the map to full screen for easy navigation along the coast.</p>
+      </div>
+
+      <div class="info-section">
+        <h4>🧠 Smart Logbook Learning</h4>
+        <p>Log your catches with photos and details. The scoring engine automatically gives bonus confidence points (+10) to target species you've successfully caught in past trips!</p>
+      </div>
+
+      <button onclick="closeModal('infoModal')" style="width: 100%; margin-top: 10px; background: var(--accent); color: #000;">Got It!</button>
     </div>
   </div>
 
@@ -320,17 +356,14 @@
     });
 
     function initInteractiveMap() {
-      if (map) return; // Prevent re-initializing
+      if (map) return;
 
-      // Default map centered around KZN coast
       map = L.map('mapContainer').setView([-28.78, 32.05], 10);
 
-      // Google Earth / Esri World Imagery Layer (High Res Satellite)
       L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
         attribution: 'Esri World Imagery'
       }).addTo(map);
 
-      // Map Click Event
       map.on('click', function(e) {
         const lat = e.latlng.lat.toFixed(4);
         const lon = e.latlng.lng.toFixed(4);
@@ -369,7 +402,6 @@
         btn.style.right = '10px';
       }
 
-      // Tell Leaflet map size changed so tiles re-render smoothly
       setTimeout(() => {
         if (map) map.invalidateSize();
       }, 200);
@@ -711,7 +743,6 @@
     }
 
     function closeModal(id) { 
-      // If closing modal while map is fullscreen, exit fullscreen first
       if (isMapFullscreen) toggleMapFullscreen();
       document.getElementById(id).style.display = 'none'; 
     }
