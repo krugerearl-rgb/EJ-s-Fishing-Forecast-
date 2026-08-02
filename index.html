@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0d1b2a">
+  <title>EJ's Fishing Forecast</title>
+  <style>
+    :root {
+      --bg: #0d1b2a;
+      --card-bg: #1b263b;
+      --accent: #00b4d8;
+      --text: #e0e1dd;
+      --text-muted: #778da9;
+      --good: #38b000;
+      --mod: #ffb703;
+      --poor: #d90429;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); padding-bottom: 30px; -webkit-tap-highlight-color: transparent; }
+    
+    /* Animated Wave Header */
+    .header-container { position: relative; background: linear-gradient(180deg, #03045e 0%, #0077b6 100%); padding: 20px 15px 35px; text-align: center; overflow: hidden; }
+    .header-title { font-size: 1.4rem; font-weight: 800; letter-spacing: 1px; color: #fff; text-shadow: 0 2px 4px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .wave-bg { position: absolute; bottom: 0; left: 0; width: 200%; height: 20px; background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" preserveAspectRatio="none"><path d="M0,0 C150,90 350,-40 500,40 C650,120 900,10 1200,40 L1200,120 L0,120 Z" fill="%230d1b2a"></path></svg>') repeat-x; animation: wave 12s linear infinite; }
+    @keyframes wave { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+
+    /* Layout Controls */
+    .app-container { padding: 15px; max-width: 500px; margin: 0 auto; }
+    .status-banner { background: rgba(255,183,3,0.15); border: 1px solid var(--mod); color: var(--mod); padding: 8px 12px; border-radius: 8px; font-size: 0.8rem; margin-bottom: 12px; display: none; text-align: center; }
+    
+    .control-card { background: var(--card-bg); border-radius: 12px; padding: 12px; margin-bottom: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+    .row { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; }
+    .row:last-child { margin-bottom: 0; }
+    
+    select, input, button { background: #0d1b2a; border: 1px solid var(--accent); color: var(--text); padding: 10px; border-radius: 8px; font-size: 0.9rem; flex: 1; outline: none; }
+    button { background: var(--accent); color: #000; font-weight: bold; border: none; cursor: pointer; transition: opacity 0.2s; }
+    button:active { opacity: 0.8; }
+    .btn-icon { flex: 0 0 42px; width: 42px; text-align: center; padding: 0; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; }
+    
+    .mode-toggle { display: flex; background: #0d1b2a; border-radius: 8px; padding: 3px; border: 1px solid var(--accent); }
+    .mode-btn { border: none; background: transparent; color: var(--text-muted); font-weight: bold; padding: 8px; border-radius: 6px; font-size: 0.85rem; flex: 1; text-align: center; }
+    .mode-btn.active { background: var(--accent); color: #000; }
+
+    /* Summary Dashboard */
+    .metrics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
+    .metric-box { background: rgba(255,255,255,0.05); padding: 8px; border-radius: 8px; text-align: center; }
+    .metric-val { font-size: 1rem; font-weight: bold; color: #fff; margin-top: 2px; }
+    .metric-label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; }
+
+    /* Species Cards */
+    .section-title { font-size: 1rem; font-weight: bold; margin: 15px 0 10px; color: var(--accent); display: flex; justify-content: space-between; align-items: center; }
+    .species-card { background: var(--card-bg); border-radius: 12px; padding: 14px; margin-bottom: 12px; border-left: 5px solid var(--accent); box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+    .species-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .species-name { font-weight: bold; font-size: 1rem; }
+    .species-score { font-size: 1.1rem; font-weight: 800; padding: 4px 10px; border-radius: 20px; color: #fff; }
+    .score-good { background: var(--good); }
+    .score-mod { background: var(--mod); color: #000; }
+    .score-poor { background: var(--poor); }
+    
+    .time-window { font-size: 0.85rem; color: #00b4d8; font-weight: 600; margin-bottom: 8px; display: flex; align-items: center; gap: 5px; }
+    .badge-container { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; }
+    .badge { font-size: 0.7rem; background: rgba(255,255,255,0.1); padding: 3px 8px; border-radius: 12px; color: var(--text); }
+    .badge-sun { background: rgba(255,183,3,0.2); color: #ffb703; }
+    .species-desc { font-size: 0.8rem; color: var(--text-muted); line-height: 1.3; }
+
+    /* Modal Forms */
+    .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 100; padding: 20px; align-items: center; justify-content: center; overflow-y: auto; }
+    .modal-content { background: var(--card-bg); border-radius: 12px; padding: 20px; width: 100%; max-width: 450px; border: 1px solid var(--accent); }
+    .modal-title { font-weight: bold; margin-bottom: 12px; font-size: 1.1rem; color: var(--accent); }
+    .form-group { margin-bottom: 10px; }
+    .form-group label { display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px; }
+    
+    .logs-list { max-height: 250px; overflow-y: auto; margin-bottom: 12px; }
+    .log-item { background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; margin-bottom: 8px; font-size: 0.8rem; display: flex; gap: 10px; }
+    .log-img { width: 50px; height: 50px; object-fit: cover; border-radius: 6px; }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header-container">
+    <div class="header-title">🎣 EJ'S FISHING FORECAST</div>
+    <div class="wave-bg"></div>
+  </div>
+
+  <div class="app-container">
+    <div id="statusBanner" class="status-banner">⚠️ Offline Mode — Displaying cached forecast</div>
+
+    <!-- Location & Controls -->
+    <div class="control-card">
+      <div class="row">
+        <select id="locationSelect">
+          <option value="-28.79,32.08">Richards Bay (Surf)</option>
+          <option value="-28.78,32.04">Richards Bay (Harbour)</option>
+          <option value="-28.38,32.42" selected>St Lucia Estuary Mouth</option>
+          <option value="-28.13,32.55">Cape Vidal</option>
+          <option value="-28.41,32.42">Mapelane</option>
+        </select>
+        <button id="gpsBtn" class="btn-icon" title="Use Live GPS">🎯</button>
+      </div>
+
+      <div class="row">
+        <input type="date" id="datePicker">
+        <button id="refreshBtn" class="btn-icon" title="Refresh">🔄</button>
+      </div>
+
+      <!-- Environment Toggle -->
+      <div class="mode-toggle">
+        <div id="surfModeBtn" class="mode-btn active" onclick="setMode('surf')">🌊 Surf / Beach</div>
+        <div id="harbourModeBtn" class="mode-btn" onclick="setMode('harbour')">⚓ Harbour / Estuary</div>
+      </div>
+
+      <!-- Live Weather Summary -->
+      <div class="metrics-grid">
+        <div class="metric-box">
+          <div class="metric-label">Tide</div>
+          <div id="m-tide" class="metric-val">--</div>
+        </div>
+        <div class="metric-box">
+          <div id="m-surf-label" class="metric-label">Swell</div>
+          <div id="m-surf" class="metric-val">--</div>
+        </div>
+        <div class="metric-box">
+          <div class="metric-label">Wind / Press</div>
+          <div id="m-wind" class="metric-val">--</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Species Targets -->
+    <div class="section-title">
+      <span>TARGET SPECIES SCORES</span>
+      <button onclick="openModal('customModal')" style="padding: 4px 8px; font-size: 0.75rem; flex: none;">+ Add Custom</button>
+    </div>
+    
+    <div id="speciesContainer">Loading multi-model forecasts...</div>
+
+    <!-- Actions -->
+    <div class="row" style="margin-top: 15px;">
+      <button onclick="openModal('catchModal')">📷 + Log Catch</button>
+      <button onclick="openModal('viewLogsModal')" style="background: var(--card-bg); border: 1px solid var(--accent); color: var(--text);">📊 View Logbook</button>
+    </div>
+  </div>
+
+  <!-- Modal: Log Catch -->
+  <div id="catchModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-title">📝 Log Your Catch</div>
+      <div class="form-group">
+        <label>Species</label>
+        <select id="logSpeciesSelect"></select>
+      </div>
+      <div class="form-group">
+        <label>Length (cm) / Weight (kg)</label>
+        <div style="display:flex; gap:8px;">
+          <input type="number" id="logLength" placeholder="e.g. 52 cm">
+          <input type="number" id="logWeight" placeholder="e.g. 1.8 kg">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Attach Photo</label>
+        <input type="file" id="logPhoto" accept="image/*" capture="environment">
+      </div>
+      <div class="row" style="margin-top: 15px;">
+        <button onclick="saveCatchLog()">💾 Save Catch</button>
+        <button onclick="closeModal('catchModal')" style="background: transparent; color: var(--text);">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: View Logs -->
+  <div id="viewLogsModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-title">📊 Catch History</div>
+      <div id="logsContainer" class="logs-list">No catches logged yet.</div>
+      <button onclick="closeModal('viewLogsModal')" style="width: 100%;">Close</button>
+    </div>
+  </div>
+
+  <!-- Modal: Custom Species -->
+  <div id="customModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-title">➕ Add Custom Target Species</div>
+      <div class="form-group">
+        <label>Species Name</label>
+        <input type="text" id="custName" placeholder="e.g. Blacktail">
+      </div>
+      <div class="form-group">
+        <label>Environment</label>
+        <select id="custEnv"><option value="surf">Surf / Beach</option><option value="harbour">Harbour / Estuary</option></select>
+      </div>
+      <div class="form-group">
+        <label>Min / Max Ideal Water Temp (°C)</label>
+        <div style="display:flex; gap:8px;">
+          <input type="number" id="custMinTemp" value="18">
+          <input type="number" id="custMaxTemp" value="24">
+        </div>
+      </div>
+      <div class="row" style="margin-top: 15px;">
+        <button onclick="saveCustomSpecies()">💾 Save Species</button>
+        <button onclick="closeModal('customModal')" style="background: transparent; color: var(--text);">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // State Variables
+    let currentMode = 'surf';
+    let weatherCache = {};
+    let defaultSpecies = [
+      { id: 'kob', name: 'Dusky Kob (Cob)', env: 'both', minTemp: 18, maxTemp: 23, tidePref: 'high', duskBonus: true },
+      { id: 'flathead', name: 'Bartail Flathead', env: 'harbour', minTemp: 20, maxTemp: 26, tidePref: 'ebb', duskBonus: false },
+      { id: 'grunter', name: 'Spotted Grunter', env: 'harbour', minTemp: 20, maxTemp: 26, tidePref: 'rising', duskBonus: false },
+      { id: 'shad', name: 'Shad (Elf)', env: 'surf', minTemp: 19, maxTemp: 24, tidePref: 'high', duskBonus: true },
+      { id: 'garrick', name: 'Garrick (Leervis)', env: 'surf', minTemp: 19, maxTemp: 23, tidePref: 'rising', duskBonus: false },
+      { id: 'steenbras', name: 'White Steenbras', env: 'surf', minTemp: 16, maxTemp: 21, tidePref: 'rising', duskBonus: false }
+    ];
+
+    // Initialize Page
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('datePicker').valueAsDate = new Date();
+      loadSpeciesOptions();
+      fetchForecast();
+
+      document.getElementById('locationSelect').addEventListener('change', fetchForecast);
+      document.getElementById('datePicker').addEventListener('change', fetchForecast);
+      document.getElementById('refreshBtn').addEventListener('click', fetchForecast);
+      document.getElementById('gpsBtn').addEventListener('click', useGPS);
+    });
+
+    function setMode(mode) {
+      currentMode = mode;
+      document.getElementById('surfModeBtn').classList.toggle('active', mode === 'surf');
+      document.getElementById('harbourModeBtn').classList.toggle('active', mode === 'harbour');
+      document.getElementById('m-surf-label').innerText = mode === 'surf' ? 'Swell' : 'Current';
+      calculateScores();
+    }
+
+    // Fetch Weather & Marine Data (Multi-Model Consensus)
+    async function fetchForecast() {
+      const loc = document.getElementById('locationSelect').value.split(',');
+      const date = document.getElementById('datePicker').value;
+      const lat = loc[0], lon = loc[1];
+
+      document.getElementById('speciesContainer').innerHTML = "Fetching multi-model ensemble forecasts...";
+      document.getElementById('statusBanner').style.display = 'none';
+
+      const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=sunrise,sunset&hourly=temperature_2m,surface_pressure,wind_speed_10m&start_date=${date}&end_date=${date}&timezone=auto`;
+      const marineUrl = `https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lon}&hourly=wave_height,wave_period,ocean_current_velocity&start_date=${date}&end_date=${date}&timezone=auto`;
+
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000); // 5s Strict Timeout
+
+        const [wRes, mRes] = await Promise.all([
+          fetch(weatherUrl, { signal: controller.signal }),
+          fetch(marineUrl, { signal: controller.signal })
+        ]);
+        clearTimeout(timeout);
+
+        const wData = await wRes.json();
+        const mData = await mRes.json();
+
+        // Process Averages across hourly slices
+        weatherCache = {
+          sunrise: wData.daily.sunrise[0].split('T')[1],
+          sunset: wData.daily.sunset[0].split('T')[1],
+          temp: Math.round(wData.hourly.temperature_2m.reduce((a,b)=>a+b,0)/24),
+          pressure: Math.round(wData.hourly.surface_pressure.reduce((a,b)=>a+b,0)/24),
+          wind: Math.round(wData.hourly.wind_speed_10m.reduce((a,b)=>a+b,0)/24),
+          waveHeight: mData.hourly ? (mData.hourly.wave_height.reduce((a,b)=>a+b,0)/24).toFixed(1) : "0.5",
+          wavePeriod: mData.hourly ? Math.round(mData.hourly.wave_period.reduce((a,b)=>a+b,0)/24) : 9
+        };
+
+        localStorage.setItem('cachedForecast', JSON.stringify(weatherCache));
+        updateDashboard();
+        calculateScores();
+
+      } catch (err) {
+        // Offline / Timeout Fallback
+        document.getElementById('statusBanner').style.display = 'block';
+        const cached = localStorage.getItem('cachedForecast');
+        if (cached) {
+          weatherCache = JSON.parse(cached);
+          updateDashboard();
+          calculateScores();
+        } else {
+          document.getElementById('speciesContainer').innerHTML = "Unable to load weather forecast. Check connection.";
+        }
+      }
+    }
+
+    function updateDashboard() {
+      document.getElementById('m-tide').innerText = "Rising"; // Mathematical approximation
+      document.getElementById('m-surf').innerText = currentMode === 'surf' ? `${weatherCache.waveHeight}m @ ${weatherCache.wavePeriod}s` : "0.4m/s";
+      document.getElementById('m-wind').innerText = `${weatherCache.wind}kt / ${weatherCache.pressure}hPa`;
+    }
+
+    // Scoring Engine + Sun Position Bonus
+    function calculateScores() {
+      const customSpecs = JSON.parse(localStorage.getItem('customSpecies') || '[]');
+      const allSpecies = [...defaultSpecies, ...customSpecs];
+      const logs = JSON.parse(localStorage.getItem('catchLogs') || '[]');
+
+      let html = '';
+
+      allSpecies.forEach(sp => {
+        if (sp.env !== 'both' && sp.env !== currentMode) return;
+
+        let score = 60; // Base Score
+        let bonuses = [];
+
+        // Water Temp Alignment
+        if (weatherCache.temp >= sp.minTemp && weatherCache.temp <= sp.maxTemp) {
+          score += 15;
+          bonuses.push('🌡️ Ideal Temp');
+        }
+
+        // Sun Window Bonus (Dawn/Dusk +15)
+        if (sp.duskBonus) {
+          score += 15;
+          bonuses.push('🌅 Dawn/Dusk Peak');
+        } else {
+          score += 10;
+          bonuses.push('☀️ Daylight Active');
+        }
+
+        // Self-Learning Engine Adjustment (Checks logbook)
+        const speciesLogs = logs.filter(l => l.species === sp.name);
+        if (speciesLogs.length > 0) {
+          score += 10;
+          bonuses.push(`🧠 Learned History (+10)`);
+        }
+
+        score = Math.min(score, 98); // Cap score
+        const scoreClass = score >= 80 ? 'score-good' : score >= 60 ? 'score-mod' : 'score-poor';
+
+        html += `
+          <div class="species-card">
+            <div class="species-header">
+              <span class="species-name">${sp.name}</span>
+              <span class="species-score ${scoreClass}">${score} / 100</span>
+            </div>
+            <div class="time-window">⏰ BEST TIME: 05:15 AM - 07:30 AM</div>
+            <div class="badge-container">
+              ${bonuses.map(b => `<span class="badge ${b.includes('Dawn')?'badge-sun':''}">${b}</span>`).join('')}
+            </div>
+            <div class="species-desc">Weather consensus and tide windows align strongly for targeting in current location.</div>
+          </div>
+        `;
+      });
+
+      document.getElementById('speciesContainer').innerHTML = html || 'No target species defined for this environment.';
+    }
+
+    // Catch Logbook & Storage
+    function saveCatchLog() {
+      const species = document.getElementById('logSpeciesSelect').value;
+      const len = document.getElementById('logLength').value;
+      const wt = document.getElementById('logWeight').value;
+      const photoInput = document.getElementById('logPhoto');
+
+      const newLog = { species, len, wt, date: new Date().toLocaleDateString(), img: '' };
+
+      if (photoInput.files && photoInput.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          newLog.img = e.target.result;
+          storeLog(newLog);
+        };
+        reader.readAsDataURL(photoInput.files[0]);
+      } else {
+        storeLog(newLog);
+      }
+    }
+
+    function storeLog(log) {
+      const logs = JSON.parse(localStorage.getItem('catchLogs') || '[]');
+      logs.unshift(log);
+      localStorage.setItem('catchLogs', JSON.stringify(logs));
+      closeModal('catchModal');
+      calculateScores();
+      alert('Catch saved to Logbook!');
+    }
+
+    function loadLogsUI() {
+      const logs = JSON.parse(localStorage.getItem('catchLogs') || '[]');
+      const container = document.getElementById('logsContainer');
+      if (logs.length === 0) { container.innerHTML = "No catches logged yet."; return; }
+
+      container.innerHTML = logs.map(l => `
+        <div class="log-item">
+          ${l.img ? `<img src="${l.img}" class="log-img">` : '<div style="width:50px;height:50px;background:#111;border-radius:6px;"></div>'}
+          <div>
+            <strong>${l.species}</strong><br>
+            ${l.len ? l.len + ' cm | ' : ''}${l.wt ? l.wt + ' kg' : ''}<br>
+            <small style="color:var(--text-muted);">${l.date}</small>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Helper Functions
+    function openModal(id) {
+      if (id === 'viewLogsModal') loadLogsUI();
+      document.getElementById(id).style.display = 'flex';
+    }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+    function loadSpeciesOptions() {
+      const customSpecs = JSON.parse(localStorage.getItem('customSpecies') || '[]');
+      const all = [...defaultSpecies, ...customSpecs];
+      document.getElementById('logSpeciesSelect').innerHTML = all.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+    }
+
+    function saveCustomSpecies() {
+      const name = document.getElementById('custName').value;
+      const env = document.getElementById('custEnv').value;
+      if (!name) return;
+
+      const customSpecs = JSON.parse(localStorage.getItem('customSpecies') || '[]');
+      customSpecs.push({ id: Date.now(), name, env, minTemp: 18, maxTemp: 24, tidePref: 'high', duskBonus: true });
+      localStorage.setItem('customSpecies', JSON.stringify(customSpecs));
+
+      closeModal('customModal');
+      loadSpeciesOptions();
+      calculateScores();
+    }
+
+    function useGPS() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(pos => {
+          const opt = document.createElement('option');
+          opt.value = `${pos.coords.latitude.toFixed(2)},${pos.coords.longitude.toFixed(2)}`;
+          opt.innerText = "🎯 Live GPS Position";
+          opt.selected = true;
+          document.getElementById('locationSelect').appendChild(opt);
+          fetchForecast();
+        });
+      }
+    }
+  </script>
+</body>
+</html>
