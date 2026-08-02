@@ -49,7 +49,7 @@
     .mode-btn.active { background: var(--accent); color: #000; }
 
     /* 8-Hour Hourly Projection Section */
-    .hourly-title { font-size: 0.8rem; font-weight: bold; color: var(--accent); text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px; display: flex; justify-content: space-between; }
+    .hourly-title { font-size: 0.8rem; font-weight: bold; color: var(--accent); text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px; display: flex; justify-space-between; }
     .hourly-scroll { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 5px; scrollbar-width: none; }
     .hourly-scroll::-webkit-scrollbar { display: none; }
     .hourly-card { background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 8px; flex: 0 0 90px; text-align: center; }
@@ -96,8 +96,13 @@
     .search-result { background: rgba(255,255,255,0.05); padding: 8px; border-radius: 6px; margin-top: 4px; cursor: pointer; font-size: 0.85rem; }
     .search-result:hover { background: rgba(0,180,216,0.2); }
 
-    /* Interactive Satellite Map Styling */
-    #mapContainer { height: 220px; border-radius: 8px; margin: 10px 0; border: 1px solid var(--accent); z-index: 1; }
+    /* Map Wrapper & Fullscreen Styling */
+    .map-wrapper { position: relative; margin: 10px 0; }
+    #mapContainer { height: 220px; border-radius: 8px; border: 1px solid var(--accent); z-index: 1; transition: all 0.3s ease; }
+    
+    /* Fullscreen State for Map */
+    .map-fullscreen { position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important; z-index: 9999 !important; border-radius: 0 !important; }
+    .fullscreen-btn { position: absolute; top: 10px; right: 10px; z-index: 1000; background: rgba(13,27,42,0.85); color: var(--accent); border: 1px solid var(--accent); padding: 6px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; cursor: pointer; }
   </style>
 </head>
 <body>
@@ -179,7 +184,10 @@
       <!-- Option A: Interactive Satellite / Earth Map -->
       <div class="form-group">
         <label>🌍 OPTION 1: Tap Anywhere on Map (Satellite View)</label>
-        <div id="mapContainer"></div>
+        <div class="map-wrapper">
+          <div id="mapContainer"></div>
+          <button type="button" class="fullscreen-btn" id="fsToggleBtn" onclick="toggleMapFullscreen()">⛶ Fullscreen</button>
+        </div>
         <small style="color:var(--accent); font-size:0.7rem;">Tap anywhere on the coastline/water to drop a pin.</small>
       </div>
 
@@ -280,6 +288,7 @@
     let weatherCache = {};
     let rawHourly = [];
     let map, mapMarker;
+    let isMapFullscreen = false;
 
     const defaultLocations = [
       { name: "Richards Bay (Surf)", val: "-28.79,32.08" },
@@ -338,6 +347,32 @@
           document.getElementById('customLocName').value = `Picked Spot (${lat}, ${lon})`;
         }
       });
+    }
+
+    function toggleMapFullscreen() {
+      const mapEl = document.getElementById('mapContainer');
+      const btn = document.getElementById('fsToggleBtn');
+      
+      isMapFullscreen = !isMapFullscreen;
+      
+      if (isMapFullscreen) {
+        mapEl.classList.add('map-fullscreen');
+        btn.innerText = '✖ Exit Fullscreen';
+        btn.style.position = 'fixed';
+        btn.style.top = '15px';
+        btn.style.right = '15px';
+      } else {
+        mapEl.classList.remove('map-fullscreen');
+        btn.innerText = '⛶ Fullscreen';
+        btn.style.position = 'absolute';
+        btn.style.top = '10px';
+        btn.style.right = '10px';
+      }
+
+      // Tell Leaflet map size changed so tiles re-render smoothly
+      setTimeout(() => {
+        if (map) map.invalidateSize();
+      }, 200);
     }
 
     function renderLocationDropdown() {
@@ -675,7 +710,11 @@
       }
     }
 
-    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+    function closeModal(id) { 
+      // If closing modal while map is fullscreen, exit fullscreen first
+      if (isMapFullscreen) toggleMapFullscreen();
+      document.getElementById(id).style.display = 'none'; 
+    }
 
     function loadSpeciesOptions() {
       const customSpecs = JSON.parse(localStorage.getItem('customSpecies') || '[]');
