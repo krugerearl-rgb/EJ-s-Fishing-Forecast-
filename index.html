@@ -113,7 +113,7 @@
     .search-result:hover { background: rgba(0,180,216,0.2); }
 
     .map-wrapper { position: relative; margin: 10px 0; }
-    #mapContainer { height: 260px; border-radius: 8px; border: 1px solid var(--accent); z-index: 1; transition: all 0.3s ease; }
+    #mapContainer, #catchMapContainer { height: 260px; border-radius: 8px; border: 1px solid var(--accent); z-index: 1; transition: all 0.3s ease; }
     .map-fullscreen { position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important; z-index: 9999 !important; border-radius: 0 !important; border: none !important; }
     .fullscreen-btn { position: absolute; top: 10px; right: 10px; z-index: 1000; background: rgba(13,27,42,0.85); color: var(--accent); border: 1px solid var(--accent); padding: 6px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; cursor: pointer; }
     .map-header-bar { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 50px; background: rgba(13,27,42,0.95); border-bottom: 1px solid var(--accent); z-index: 1001; align-items: center; justify-content: space-between; padding: 0 15px; }
@@ -126,7 +126,7 @@
 
     /* Catch log location tabs styling */
     .catch-loc-tabs { display: flex; background: #0d1b2a; border-radius: 8px; padding: 3px; border: 1px solid var(--accent); margin-bottom: 8px; }
-    .catch-loc-tab { border: none; background: transparent; color: var(--text-muted); font-weight: bold; padding: 6px; border-radius: 6px; font-size: 0.75rem; flex: 1; text-align: center; cursor: pointer; }
+    .catch-loc-tab { border: none; background: transparent; color: var(--text-muted); font-weight: bold; padding: 6px; border-radius: 6px; font-size: 0.7rem; flex: 1; text-align: center; cursor: pointer; }
     .catch-loc-tab.active { background: var(--accent); color: #000; }
     .catch-loc-panel { display: none; }
     .catch-loc-panel.active { display: block; }
@@ -341,10 +341,10 @@
           <div id="mapContainer">
             <div class="map-header-bar">
               <span style="font-weight:bold; color:var(--accent); font-size:0.9rem;">📍 Google Hybrid Spot Picker</span>
-              <button type="button" onclick="toggleMapFullscreen()" style="background:var(--accent); color:#000; padding:6px 12px; font-size:0.75rem; border-radius:6px; font-weight:bold;">✖ Collapse Map</button>
+              <button type="button" onclick="toggleMapFullscreen('mapContainer')" style="background:var(--accent); color:#000; padding:6px 12px; font-size:0.75rem; border-radius:6px; font-weight:bold;">✖ Collapse Map</button>
             </div>
           </div>
-          <button type="button" class="fullscreen-btn" id="fsToggleBtn" onclick="toggleMapFullscreen()">⛶ Fullscreen</button>
+          <button type="button" class="fullscreen-btn" onclick="toggleMapFullscreen('mapContainer')">⛶ Fullscreen</button>
         </div>
         <small style="color:var(--accent); font-size:0.7rem;">Tap anywhere on the Google map to drop a pin and read exact town/road names.</small>
       </div>
@@ -399,6 +399,7 @@
         <div class="catch-loc-tabs">
           <button type="button" class="catch-loc-tab active" onclick="setCatchLocMode('gps')">🎯 Auto-GPS</button>
           <button type="button" class="catch-loc-tab" onclick="setCatchLocMode('saved')">📍 Saved Spot</button>
+          <button type="button" class="catch-loc-tab" onclick="setCatchLocMode('map')">🗺️ Map Pin</button>
           <button type="button" class="catch-loc-tab" onclick="setCatchLocMode('manual')">⌨️ Manual</button>
         </div>
         
@@ -409,6 +410,18 @@
           <select id="catchSavedSelect" style="width:100%;">
             <option value="">Select a saved spot...</option>
           </select>
+        </div>
+        <div id="catchMapPanel" class="catch-loc-panel">
+          <div class="map-wrapper" style="margin: 0 0 6px 0;">
+            <div id="catchMapContainer" style="height: 200px;">
+              <div class="map-header-bar">
+                <span style="font-weight:bold; color:var(--accent); font-size:0.9rem;">📍 Pin Catch Location</span>
+                <button type="button" onclick="toggleMapFullscreen('catchMapContainer')" style="background:var(--accent); color:#000; padding:6px 12px; font-size:0.75rem; border-radius:6px; font-weight:bold;">✖ Collapse Map</button>
+              </div>
+            </div>
+            <button type="button" class="fullscreen-btn" onclick="toggleMapFullscreen('catchMapContainer')">⛶ Fullscreen</button>
+          </div>
+          <input type="text" id="catchMapCoordsInput" value="Tap map to choose catch spot" readonly style="width:100%; font-size:0.8rem; background:rgba(0,0,0,0.3);">
         </div>
         <div id="catchManualPanel" class="catch-loc-panel">
           <div style="display:flex; gap:6px;">
@@ -443,7 +456,8 @@
     let weatherCache = {};
     let rawHourly = [];
     let map, mapMarker;
-    let isMapFullscreen = false;
+    let catchMap, catchMapMarker;
+    let activeFullscreenContainer = null;
     let deferredPrompt = null;
     let currentCatchCoords = "";
 
@@ -516,6 +530,7 @@
       
       document.getElementById('catchGpsPanel').classList.remove('active');
       document.getElementById('catchSavedPanel').classList.remove('active');
+      document.getElementById('catchMapPanel').classList.remove('active');
       document.getElementById('catchManualPanel').classList.remove('active');
 
       if (mode === 'gps') {
@@ -526,8 +541,15 @@
         tabs[1].classList.add('active');
         document.getElementById('catchSavedPanel').classList.add('active');
         populateCatchSavedDropdown();
-      } else if (mode === 'manual') {
+      } else if (mode === 'map') {
         tabs[2].classList.add('active');
+        document.getElementById('catchMapPanel').classList.add('active');
+        setTimeout(() => {
+          initCatchMap();
+          if (catchMap) catchMap.invalidateSize();
+        }, 150);
+      } else if (mode === 'manual') {
+        tabs[3].classList.add('active');
         document.getElementById('catchManualPanel').classList.add('active');
       }
     }
@@ -640,16 +662,42 @@
       });
     }
 
-    function toggleMapFullscreen() {
-      const mapEl = document.getElementById('mapContainer');
-      isMapFullscreen = !isMapFullscreen;
+    function initCatchMap() {
+      if (catchMap) return;
+      catchMap = L.map('catchMapContainer').setView([-28.78, 32.05], 11);
       
-      if (isMapFullscreen) {
+      const googleHybridLayer = L.tileLayer('https://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', {
+        maxZoom: 20,
+        subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+        attribution: '© Google Maps'
+      });
+
+      googleHybridLayer.addTo(catchMap);
+
+      catchMap.on('click', function(e) {
+        const lat = e.latlng.lat.toFixed(4);
+        const lon = e.latlng.lng.toFixed(4);
+        currentCatchCoords = `${lat},${lon}`;
+        if (catchMapMarker) { catchMapMarker.setLatLng(e.latlng); } else { catchMapMarker = L.marker(e.latlng).addTo(catchMap); }
+        document.getElementById('catchMapCoordsInput').value = `Selected Catch Pin: ${currentCatchCoords}`;
+      });
+    }
+
+    function toggleMapFullscreen(containerId) {
+      const mapEl = document.getElementById(containerId);
+      const isFullscreen = mapEl.classList.contains('map-fullscreen');
+      
+      if (!isFullscreen) {
         mapEl.classList.add('map-fullscreen');
+        activeFullscreenContainer = containerId;
       } else {
         mapEl.classList.remove('map-fullscreen');
+        activeFullscreenContainer = null;
       }
-      setTimeout(() => { if (map) map.invalidateSize(); }, 200);
+      setTimeout(() => {
+        if (containerId === 'mapContainer' && map) map.invalidateSize();
+        if (containerId === 'catchMapContainer' && catchMap) catchMap.invalidateSize();
+      }, 200);
     }
 
     function renderLocationDropdown() {
@@ -1036,7 +1084,10 @@
     }
 
     function closeModal(id) { 
-      if (isMapFullscreen) toggleMapFullscreen();
+      if (activeFullscreenContainer) {
+        document.getElementById(activeFullscreenContainer).classList.remove('map-fullscreen');
+        activeFullscreenContainer = null;
+      }
       document.getElementById(id).style.display = 'none'; 
     }
 
