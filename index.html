@@ -491,13 +491,24 @@
         attribution: 'Esri World Imagery'
       }).addTo(map);
 
-      map.on('click', function(e) {
+      // UPDATED: Auto-fetch nearest location name when tapping on the satellite map
+      map.on('click', async function(e) {
         const lat = e.latlng.lat.toFixed(4);
         const lon = e.latlng.lng.toFixed(4);
         if (mapMarker) { mapMarker.setLatLng(e.latlng); } else { mapMarker = L.marker(e.latlng).addTo(map); }
         document.getElementById('customLat').value = lat;
         document.getElementById('customLon').value = lon;
-        if(!document.getElementById('customLocName').value) {
+        
+        // Fetch location name dynamically via reverse geocoding API
+        try {
+          const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${lat},${lon}&count=1`);
+          const data = await res.json();
+          if (data.results && data.results[0]) {
+            document.getElementById('customLocName').value = data.results[0].name;
+          } else {
+            document.getElementById('customLocName').value = `Picked Spot (${lat}, ${lon})`;
+          }
+        } catch(err) {
           document.getElementById('customLocName').value = `Picked Spot (${lat}, ${lon})`;
         }
       });
@@ -520,12 +531,13 @@
       setTimeout(() => { if (map) map.invalidateSize(); }, 200);
     }
 
+    // UPDATED: Clean Dropdown Formatting for Custom Locations
     function renderLocationDropdown() {
       const select = document.getElementById('locationSelect');
       const customLocs = JSON.parse(localStorage.getItem('customLocations') || '[]');
       let html = defaultLocations.map(l => `<option value="${l.val}">${l.name}</option>`).join('');
       if (customLocs.length > 0) {
-        html += `<optgroup label="Custom Spots">`;
+        html += `<optgroup label="📍 Custom Saved Spots">`;
         html += customLocs.map(l => `<option value="${l.lat},${l.lon}">📍 ${l.name}</option>`).join('');
         html += `</optgroup>`;
       }
@@ -558,10 +570,9 @@
       }
     }
 
+    // UPDATED: Instantly save search result with full location name
     function saveSearchedLocation(name, lat, lon) {
-      document.getElementById('customLocName').value = name;
-      document.getElementById('customLat').value = lat;
-      document.getElementById('customLon').value = lon;
+      saveCustomLoc(name, lat, lon);
       document.getElementById('searchResults').innerHTML = '';
       document.getElementById('locSearchInput').value = '';
     }
