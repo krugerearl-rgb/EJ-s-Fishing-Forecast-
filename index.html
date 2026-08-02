@@ -6,17 +6,16 @@
   <meta name="theme-color" content="#0d1b2a">
   <title>EJ's Fishing Forecast</title>
   
-  <!-- Mobile App Manifest & Web App Icon (Option 4: Dusk Horizon) -->
+  <!-- Mobile App Manifest & Web App Icon -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="EJ's Fishing">
   
-  <!-- Inline Data URI for Icon Option 4 (Dusk Horizon) -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><defs><linearGradient id='grad' x1='0%' y1='0%' x2='0%' y2='100%'><stop offset='0%' style='stop-color:%23d90429;stop-opacity:1'/><stop offset='40%' style='stop-color:%23ffb703;stop-opacity:1'/><stop offset='80%' style='stop-color:%230077b6;stop-opacity:1'/><stop offset='100%' style='stop-color:%230d1b2a;stop-opacity:1'/></linearGradient></defs><rect width='512' height='512' rx='110' fill='url(%23grad)'/><circle cx='256' cy='230' r='70' fill='%23fff' opacity='0.9'/><path d='M0 280 Q 128 250, 256 280 T 512 280 L 512 512 L 0 512 Z' fill='%230d1b2a' opacity='0.95'/><path d='M220 280 C 240 220, 290 200, 330 210 C 310 240, 280 260, 260 280 Z' fill='%23e0e1dd'/></svg>">
   <link rel="apple-touch-icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><defs><linearGradient id='grad' x1='0%' y1='0%' x2='0%' y2='100%'><stop offset='0%' style='stop-color:%23d90429;stop-opacity:1'/><stop offset='40%' style='stop-color:%23ffb703;stop-opacity:1'/><stop offset='80%' style='stop-color:%230077b6;stop-opacity:1'/><stop offset='100%' style='stop-color:%230d1b2a;stop-opacity:1'/></linearGradient></defs><rect width='512' height='512' rx='110' fill='url(%23grad)'/><circle cx='256' cy='230' r='70' fill='%23fff' opacity='0.9'/><path d='M0 280 Q 128 250, 256 280 T 512 280 L 512 512 L 0 512 Z' fill='%230d1b2a' opacity='0.95'/><path d='M220 280 C 240 220, 290 200, 330 210 C 310 240, 280 260, 260 280 Z' fill='%23e0e1dd'/></svg>">
 
-  <!-- Leaflet CSS & JS for Interactive Satellite/Google Earth View -->
+  <!-- Leaflet CSS & JS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
@@ -34,7 +33,6 @@
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
     body { background-color: var(--bg); color: var(--text); padding-bottom: 30px; -webkit-tap-highlight-color: transparent; }
     
-    /* Header */
     .header-container { position: relative; background: linear-gradient(180deg, #03045e 0%, #0077b6 100%); padding: 20px 15px 35px; text-align: center; overflow: hidden; }
     .header-title { font-size: 1.4rem; font-weight: 800; letter-spacing: 1px; color: #fff; text-shadow: 0 2px 4px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; gap: 8px; }
     .wave-bg { position: absolute; bottom: 0; left: 0; width: 200%; height: 20px; background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" preserveAspectRatio="none"><path d="M0,0 C150,90 350,-40 500,40 C650,120 900,10 1200,40 L1200,120 L0,120 Z" fill="%230d1b2a"></path></svg>') repeat-x; animation: wave 12s linear infinite; }
@@ -42,7 +40,6 @@
 
     .info-btn-header { position: absolute; top: 12px; right: 12px; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); color: #fff; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; font-weight: bold; cursor: pointer; z-index: 10; }
 
-    /* Layout Controls */
     .app-container { padding: 15px; max-width: 500px; margin: 0 auto; }
     .status-banner { background: rgba(255,183,3,0.15); border: 1px solid var(--mod); color: var(--mod); padding: 8px 12px; border-radius: 8px; font-size: 0.8rem; margin-bottom: 12px; display: none; text-align: center; }
     
@@ -60,7 +57,6 @@
     .mode-btn { border: none; background: transparent; color: var(--text-muted); font-weight: bold; padding: 8px; border-radius: 6px; font-size: 0.85rem; flex: 1; text-align: center; }
     .mode-btn.active { background: var(--accent); color: #000; }
 
-    /* Hourly Projection */
     .hourly-title { font-size: 0.8rem; font-weight: bold; color: var(--accent); text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px; display: flex; justify-content: space-between; }
     .hourly-scroll { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 5px; scrollbar-width: none; }
     .hourly-scroll::-webkit-scrollbar { display: none; }
@@ -74,13 +70,11 @@
     .comfort-mod { background: rgba(255,183,3,0.2); color: var(--mod); }
     .comfort-poor { background: rgba(217,4,41,0.2); color: var(--poor); }
 
-    /* Summary Dashboard */
     .metrics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
     .metric-box { background: rgba(255,255,255,0.05); padding: 8px; border-radius: 8px; text-align: center; }
     .metric-val { font-size: 1rem; font-weight: bold; color: #fff; margin-top: 2px; }
     .metric-label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; }
 
-    /* Species Cards */
     .section-title { font-size: 1rem; font-weight: bold; margin: 15px 0 10px; color: var(--accent); display: flex; justify-content: space-between; align-items: center; }
     .species-card { background: var(--card-bg); border-radius: 12px; padding: 14px; margin-bottom: 12px; border-left: 5px solid var(--accent); box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
     .species-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
@@ -98,7 +92,6 @@
     .badge-night { background: rgba(157,78,221,0.25); color: #c77dff; border: 1px solid rgba(157,78,221,0.4); }
     .species-desc { font-size: 0.8rem; color: var(--text-muted); line-height: 1.3; }
 
-    /* Modals */
     .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 100; padding: 15px; align-items: center; justify-content: center; overflow-y: auto; }
     .modal-content { background: var(--card-bg); border-radius: 12px; padding: 18px; width: 100%; max-width: 460px; border: 1px solid var(--accent); max-height: 90vh; overflow-y: auto; }
     .modal-title { font-weight: bold; margin-bottom: 12px; font-size: 1.1rem; color: var(--accent); }
@@ -110,16 +103,14 @@
     .search-result { background: rgba(255,255,255,0.05); padding: 8px; border-radius: 6px; margin-top: 4px; cursor: pointer; font-size: 0.85rem; }
     .search-result:hover { background: rgba(0,180,216,0.2); }
 
-    /* Map Wrapper & Fullscreen */
     .map-wrapper { position: relative; margin: 10px 0; }
     #mapContainer { height: 220px; border-radius: 8px; border: 1px solid var(--accent); z-index: 1; transition: all 0.3s ease; }
     .map-fullscreen { position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important; z-index: 9999 !important; border-radius: 0 !important; border: none !important; }
     .fullscreen-btn { position: absolute; top: 10px; right: 10px; z-index: 1000; background: rgba(13,27,42,0.85); color: var(--accent); border: 1px solid var(--accent); padding: 6px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; cursor: pointer; }
     .map-header-bar { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 50px; background: rgba(13,27,42,0.95); border-bottom: 1px solid var(--accent); z-index: 1001; align-items: center; justify-content: space-between; padding: 0 15px; }
     .map-fullscreen .map-header-bar { display: flex; }
-    .map-fullscreen .fullscreen-btn { display: none; } /* Replaced by header bar collapse button */
+    .map-fullscreen .fullscreen-btn { display: none; }
 
-    /* Info Tab Styling */
     .info-section { margin-bottom: 14px; }
     .info-section h4 { color: var(--accent); font-size: 0.9rem; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
     .info-section p { font-size: 0.8rem; color: var(--text-muted); line-height: 1.4; }
@@ -500,12 +491,10 @@
       if (map) return;
       map = L.map('mapContainer').setView([-28.78, 32.05], 10);
       
-      // Satellite Imagery Base Layer
       const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
         attribution: 'Esri World Imagery'
       });
 
-      // Google-style Hybrid Labels & Roads Overlay Layer (adds town names, roads, boundaries)
       const labelsLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png', {
         attribution: '© CartoDB, OpenStreetMap',
         subdomains: 'abcd',
@@ -646,7 +635,7 @@
       currentMode = mode;
       document.getElementById('surfModeBtn').classList.toggle('active', mode === 'surf');
       document.getElementById('harbourModeBtn').classList.toggle('active', mode === 'harbour');
-      document.getElementById('m-surf-label').innerText = mode === 'surf' ? 'Swell' : 'Current';
+      document.getElementById('m-surf-label').innerText = mode === 'surf' ? 'Swell' : 'Sea Temp';
       calculateScores();
     }
 
@@ -659,27 +648,37 @@
       document.getElementById('statusBanner').style.display = 'none';
 
       const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=sunrise,sunset&hourly=temperature_2m,surface_pressure,wind_speed_10m,wind_direction_10m&wind_speed_unit=kmh&start_date=${date}&end_date=${date}&timezone=auto`;
-      const marineUrl = `https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lon}&hourly=wave_height,wave_period,ocean_current_velocity&start_date=${date}&end_date=${date}&timezone=auto`;
+      // FIXED: Correct Open-Meteo marine API hourly variables parameter list
+      const marineUrl = `https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lon}&hourly=wave_height,wave_period,sea_surface_temperature&start_date=${date}&end_date=${date}&timezone=auto`;
 
       try {
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 5000);
+        const timeout = setTimeout(() => controller.abort(), 6000);
 
         const [wRes, mRes] = await Promise.all([
           fetch(weatherUrl, { signal: controller.signal }),
-          fetch(marineUrl, { signal: controller.signal })
+          fetch(marineUrl, { signal: controller.signal }).catch(() => null) // Prevent marine failure from hanging app
         ]);
         clearTimeout(timeout);
 
+        if (!wRes.ok) throw new Error('Weather fetch failed');
         const wData = await wRes.json();
-        const mData = await mRes.json();
+        
+        let mData = {};
+        if (mRes && mRes.ok) {
+          mData = await mRes.json();
+        }
 
         rawHourly = wData.hourly.time.map((t, idx) => ({
           time: t.split('T')[1].substring(0,5),
-          temp: Math.round(wData.hourly.temperature_2m[idx]),
-          wind: Math.round(wData.hourly.wind_speed_10m[idx]),
-          dir: wData.hourly.wind_direction_10m[idx]
+          temp: Math.round(wData.hourly.temperature_2m[idx] || 20),
+          wind: Math.round(wData.hourly.wind_speed_10m[idx] || 10),
+          dir: wData.hourly.wind_direction_10m[idx] || 0
         }));
+
+        const waveHeights = mData.hourly && mData.hourly.wave_height ? mData.hourly.wave_height : [0.5];
+        const wavePeriods = mData.hourly && mData.hourly.wave_period ? mData.hourly.wave_period : [9];
+        const seaTemps = mData.hourly && mData.hourly.sea_surface_temperature ? mData.hourly.sea_surface_temperature : [21];
 
         weatherCache = {
           sunrise: wData.daily.sunrise[0].split('T')[1],
@@ -687,8 +686,9 @@
           temp: Math.round(wData.hourly.temperature_2m.reduce((a,b)=>a+b,0)/24),
           pressure: Math.round(wData.hourly.surface_pressure.reduce((a,b)=>a+b,0)/24),
           wind: Math.round(wData.hourly.wind_speed_10m.reduce((a,b)=>a+b,0)/24),
-          waveHeight: mData.hourly ? (mData.hourly.wave_height.reduce((a,b)=>a+b,0)/24).toFixed(1) : "0.5",
-          wavePeriod: mData.hourly ? Math.round(mData.hourly.wave_period.reduce((a,b)=>a+b,0)/24) : 9
+          waveHeight: (waveHeights.reduce((a,b)=>a+(b||0),0)/waveHeights.length).toFixed(1),
+          wavePeriod: Math.round(wavePeriods.reduce((a,b)=>a+(b||0),0)/wavePeriods.length),
+          seaTemp: (seaTemps.reduce((a,b)=>a+(b||0),0)/seaTemps.length).toFixed(1)
         };
 
         localStorage.setItem('cachedForecast', JSON.stringify(weatherCache));
@@ -704,7 +704,10 @@
           updateDashboard();
           calculateScores();
         } else {
-          document.getElementById('speciesContainer').innerHTML = "Unable to load weather forecast. Check connection.";
+          // Fallback default metrics if all else fails
+          weatherCache = { sunrise: "06:00", sunset: "18:00", temp: 22, pressure: 1016, wind: 15, waveHeight: "1.2", wavePeriod: 10, seaTemp: "21.5" };
+          updateDashboard();
+          calculateScores();
         }
       }
     }
@@ -761,7 +764,7 @@
 
     function updateDashboard() {
       document.getElementById('m-tide').innerText = "Rising";
-      document.getElementById('m-surf').innerText = currentMode === 'surf' ? `${weatherCache.waveHeight}m @ ${weatherCache.wavePeriod}s` : "0.4m/s";
+      document.getElementById('m-surf').innerText = currentMode === 'surf' ? `${weatherCache.waveHeight}m @ ${weatherCache.wavePeriod}s` : `${weatherCache.seaTemp}°C Water`;
       document.getElementById('m-wind').innerText = `${weatherCache.wind} km/h / ${weatherCache.pressure} hPa`;
     }
 
@@ -906,7 +909,7 @@
 
     function saveCustomSpecies() {
       const name = document.getElementById('custName').value.trim();
-      const env = document.getElementById('custEnv').value,
+      const env = document.getElementById('custEnv').value;
       const minTemp = parseFloat(document.getElementById('custMinTemp').value) || 18;
       const maxTemp = parseFloat(document.getElementById('custMaxTemp').value) || 24;
       const tidePref = document.getElementById('custTidePref').value;
