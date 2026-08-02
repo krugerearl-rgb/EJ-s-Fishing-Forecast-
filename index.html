@@ -76,10 +76,10 @@
     .comfort-mod { background: rgba(255,183,3,0.2); color: var(--mod); }
     .comfort-poor { background: rgba(217,4,41,0.2); color: var(--poor); }
 
-    .metrics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
-    .metric-box { background: rgba(255,255,255,0.05); padding: 8px; border-radius: 8px; text-align: center; }
-    .metric-val { font-size: 1rem; font-weight: bold; color: #fff; margin-top: 2px; }
-    .metric-label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; }
+    .metrics-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 10px; }
+    .metric-box { background: rgba(255,255,255,0.05); padding: 6px 4px; border-radius: 8px; text-align: center; }
+    .metric-val { font-size: 0.9rem; font-weight: bold; color: #fff; margin-top: 2px; }
+    .metric-label { font-size: 0.62rem; color: var(--text-muted); text-transform: uppercase; }
 
     .section-title { font-size: 1rem; font-weight: bold; margin: 15px 0 10px; color: var(--accent); display: flex; justify-content: space-between; align-items: center; }
     .species-card { background: var(--card-bg); border-radius: 12px; padding: 14px; margin-bottom: 12px; border-left: 5px solid var(--accent); box-shadow: 0 2px 8px rgba(0,0,0,0.2); position: relative; }
@@ -181,7 +181,7 @@
         <div id="harbourModeBtn" class="mode-btn" onclick="setMode('harbour')">⚓ Harbour / Estuary</div>
       </div>
 
-      <!-- Live Summary -->
+      <!-- Live Summary (Expanded to 4 boxes to include Rain Chance) -->
       <div class="metrics-grid">
         <div class="metric-box">
           <div class="metric-label">Tide</div>
@@ -192,8 +192,12 @@
           <div id="m-surf" class="metric-val">--</div>
         </div>
         <div class="metric-box">
-          <div class="metric-label">Avg Wind / Press</div>
-          <div id="m-wind" class="metric-val">--</div>
+          <div class="metric-label">Rain %</div>
+          <div id="m-rain" class="metric-val">--</div>
+        </div>
+        <div class="metric-box">
+          <div class="metric-label">Wind / Press</div>
+          <div id="m-wind" class="metric-val" style="font-size:0.75rem;">--</div>
         </div>
       </div>
     </div>
@@ -220,12 +224,12 @@
       
       <div class="info-section">
         <h4>📡 Multi-Model Forecast Background Checks</h4>
-        <p>This app runs real-time automated background checks against global atmospheric and marine forecast models (via Open-Meteo). It cross-references water temperatures, surface pressures, wind directions, swell heights, daily solar/lunar phases, and precipitation (rain).</p>
+        <p>This app runs real-time automated background checks against global atmospheric and marine forecast models (via Open-Meteo). It cross-references water temperatures, surface pressures, wind directions, swell heights, daily solar/lunar phases, and precipitation probability.</p>
       </div>
 
       <div class="info-section">
         <h4>🌙 Night-Time Fishing Engine & Optimal Hours</h4>
-        <p>Certain target predators feed heavily under dark cover. The engine analyzes nocturnal conditions—including pressure drops, wind comfort, rain, and tide alignment after sunset—up front to display dedicated <strong>🌙 Night Peak</strong> feeding windows and bonus confidence ratings.</p>
+        <p>Certain target predators feed heavily under dark cover. The engine analyzes nocturnal conditions—including pressure drops, wind comfort, rain probability, and tide alignment after sunset—up front to display dedicated <strong>🌙 Night Peak</strong> feeding windows and bonus confidence ratings.</p>
       </div>
 
       <div class="info-section">
@@ -810,7 +814,7 @@
       document.getElementById('speciesContainer').innerHTML = "Fetching multi-model forecasts...";
       document.getElementById('statusBanner').style.display = 'none';
 
-      const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=sunrise,sunset&hourly=temperature_2m,surface_pressure,wind_speed_10m,wind_direction_10m,rain&wind_speed_unit=kmh&start_date=${date}&end_date=${date}&timezone=auto`;
+      const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=sunrise,sunset,precipitation_probability_max&hourly=temperature_2m,surface_pressure,wind_speed_10m,wind_direction_10m,rain,precipitation_probability&wind_speed_unit=kmh&start_date=${date}&end_date=${date}&timezone=auto`;
       const marineUrl = `https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lon}&hourly=wave_height,wave_period,sea_surface_temperature&start_date=${date}&end_date=${date}&timezone=auto`;
 
       try {
@@ -836,12 +840,17 @@
           temp: Math.round(wData.hourly.temperature_2m[idx] || 20),
           wind: Math.round(wData.hourly.wind_speed_10m[idx] || 10),
           dir: wData.hourly.wind_direction_10m[idx] || 0,
-          rain: wData.hourly.rain ? (wData.hourly.rain[idx] || 0) : 0
+          rain: wData.hourly.rain ? (wData.hourly.rain[idx] || 0) : 0,
+          pop: wData.hourly.precipitation_probability ? (wData.hourly.precipitation_probability[idx] || 0) : 0
         }));
 
         const waveHeights = mData.hourly && mData.hourly.wave_height ? mData.hourly.wave_height : [0.5];
         const wavePeriods = mData.hourly && mData.hourly.wave_period ? mData.hourly.wave_period : [9];
         const seaTemps = mData.hourly && mData.hourly.sea_surface_temperature ? mData.hourly.sea_surface_temperature : [21];
+
+        // Compute daily average or max precipitation probability
+        const pops = wData.hourly.precipitation_probability || [0];
+        const avgPop = Math.round(pops.reduce((a,b)=>a+(b||0),0)/pops.length);
 
         weatherCache = {
           sunrise: wData.daily.sunrise[0].split('T')[1],
@@ -849,6 +858,7 @@
           temp: Math.round(wData.hourly.temperature_2m.reduce((a,b)=>a+b,0)/24),
           pressure: Math.round(wData.hourly.surface_pressure.reduce((a,b)=>a+b,0)/24),
           wind: Math.round(wData.hourly.wind_speed_10m.reduce((a,b)=>a+b,0)/24),
+          rainChance: avgPop,
           waveHeight: (waveHeights.reduce((a,b)=>a+(b||0),0)/waveHeights.length).toFixed(1),
           wavePeriod: Math.round(wavePeriods.reduce((a,b)=>a+(b||0),0)/wavePeriods.length),
           seaTemp: (seaTemps.reduce((a,b)=>a+(b||0),0)/seaTemps.length).toFixed(1)
@@ -867,7 +877,7 @@
           updateDashboard();
           calculateScores();
         } else {
-          weatherCache = { sunrise: "06:00", sunset: "18:00", temp: 22, pressure: 1016, wind: 15, waveHeight: "1.2", wavePeriod: 10, seaTemp: "21.5" };
+          weatherCache = { sunrise: "06:00", sunset: "18:00", temp: 22, pressure: 1016, wind: 15, rainChance: 30, waveHeight: "1.2", wavePeriod: 10, seaTemp: "21.5" };
           updateDashboard();
           calculateScores();
         }
@@ -897,13 +907,13 @@
         let comfort = '😊 Pleasant';
         let comfortClass = 'comfort-good';
 
-        if (h.rain > 0.2) {
+        if (h.rain > 0.2 || h.pop > 50) {
           comfort = '🌧️ Rainy'; comfortClass = 'comfort-mod';
         }
 
         if (h.wind > 30 || h.temp < 15) {
           comfort = '🥶 Unpleasant'; comfortClass = 'comfort-poor';
-        } else if (h.wind > 20 && h.rain <= 0.2) {
+        } else if (h.wind > 20 && h.rain <= 0.2 && h.pop <= 50) {
           comfort = '💨 Breezy'; comfortClass = 'comfort-mod';
         }
 
@@ -931,7 +941,8 @@
     function updateDashboard() {
       document.getElementById('m-tide').innerText = "Rising";
       document.getElementById('m-surf').innerText = currentMode === 'surf' ? `${weatherCache.waveHeight}m @ ${weatherCache.wavePeriod}s` : `${weatherCache.seaTemp}°C Water`;
-      document.getElementById('m-wind').innerText = `${weatherCache.wind} km/h / ${weatherCache.pressure} hPa`;
+      document.getElementById('m-rain').innerText = `${weatherCache.rainChance}%`;
+      document.getElementById('m-wind').innerText = `${weatherCache.wind} km/h\n${weatherCache.pressure} hPa`;
     }
 
     function calculateScores() {
