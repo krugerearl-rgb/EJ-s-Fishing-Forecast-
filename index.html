@@ -37,6 +37,7 @@
     button { background: var(--accent); color: #000; font-weight: bold; border: none; cursor: pointer; transition: opacity 0.2s; }
     button:active { opacity: 0.8; }
     .btn-icon { flex: 0 0 42px; width: 42px; text-align: center; padding: 0; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; }
+    .btn-sm { padding: 6px 10px; font-size: 0.8rem; flex: none; }
     
     .mode-toggle { display: flex; background: #0d1b2a; border-radius: 8px; padding: 3px; border: 1px solid var(--accent); margin-top: 10px; }
     .mode-btn { border: none; background: transparent; color: var(--text-muted); font-weight: bold; padding: 8px; border-radius: 6px; font-size: 0.85rem; flex: 1; text-align: center; }
@@ -86,8 +87,9 @@
     .form-group label { display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px; }
     
     .logs-list { max-height: 250px; overflow-y: auto; margin-bottom: 12px; }
-    .log-item { background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; margin-bottom: 8px; font-size: 0.8rem; display: flex; gap: 10px; }
-    .log-img { width: 50px; height: 50px; object-fit: cover; border-radius: 6px; }
+    .log-item { background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; margin-bottom: 8px; font-size: 0.8rem; display: flex; justify-content: space-between; align-items: center; }
+    .search-result { background: rgba(255,255,255,0.05); padding: 8px; border-radius: 6px; margin-top: 4px; cursor: pointer; font-size: 0.85rem; }
+    .search-result:hover { background: rgba(0,180,216,0.2); }
   </style>
 </head>
 <body>
@@ -104,14 +106,9 @@
     <!-- Location & Controls -->
     <div class="control-card">
       <div class="row">
-        <select id="locationSelect">
-          <option value="-28.79,32.08">Richards Bay (Surf)</option>
-          <option value="-28.78,32.04">Richards Bay (Harbour)</option>
-          <option value="-28.38,32.42" selected>St Lucia Estuary Mouth</option>
-          <option value="-28.13,32.55">Cape Vidal</option>
-          <option value="-28.41,32.42">Mapelane</option>
-        </select>
+        <select id="locationSelect"></select>
         <button id="gpsBtn" class="btn-icon" title="Use Live GPS">🎯</button>
+        <button onclick="openModal('locModal')" class="btn-sm" style="background: var(--accent); color: #000;">+ Spot</button>
       </div>
 
       <div class="row">
@@ -163,6 +160,41 @@
     <div class="row" style="margin-top: 15px;">
       <button onclick="openModal('catchModal')">📷 + Log Catch</button>
       <button onclick="openModal('viewLogsModal')" style="background: var(--card-bg); border: 1px solid var(--accent); color: var(--text);">📊 View Logbook</button>
+    </div>
+  </div>
+
+  <!-- Modal: Add / Manage Custom Location -->
+  <div id="locModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-title">📍 Add & Manage Locations</div>
+      
+      <!-- Location Search -->
+      <div class="form-group">
+        <label>Search Place Name (Google Maps Engine)</label>
+        <div style="display:flex; gap:6px;">
+          <input type="text" id="locSearchInput" placeholder="e.g. Ballito, Tugela Mouth">
+          <button onclick="searchPlace()" style="flex:none; padding:8px 12px;">Search</button>
+        </div>
+        <div id="searchResults"></div>
+      </div>
+
+      <div style="text-align:center; font-size:0.75rem; color:var(--text-muted); margin: 8px 0;">— OR ENTER GPS DIRECTLY —</div>
+
+      <div class="form-group">
+        <label>Spot Name & Coordinates</label>
+        <input type="text" id="customLocName" placeholder="Spot Name (e.g. Pipeline)">
+        <div style="display:flex; gap:8px; margin-top:6px;">
+          <input type="number" step="any" id="customLat" placeholder="Latitude (-28.79)">
+          <input type="number" step="any" id="customLon" placeholder="Longitude (32.08)">
+        </div>
+      </div>
+      <button onclick="addManualLocation()" style="width:100%; margin-top:6px;">💾 Save New Spot</button>
+
+      <div style="border-top: 1px solid rgba(255,255,255,0.1); margin: 15px 0 10px;"></div>
+      <div class="modal-title" style="font-size: 0.9rem;">🗑️ Delete Custom Spots</div>
+      <div id="customLocList" class="logs-list">No custom spots added.</div>
+
+      <button onclick="closeModal('locModal')" style="width: 100%; background: transparent; color: var(--text); border:1px solid var(--accent); margin-top:10px;">Close</button>
     </div>
   </div>
 
@@ -231,6 +263,15 @@
     let currentMode = 'surf';
     let weatherCache = {};
     let rawHourly = [];
+
+    const defaultLocations = [
+      { name: "Richards Bay (Surf)", val: "-28.79,32.08" },
+      { name: "Richards Bay (Harbour)", val: "-28.78,32.04" },
+      { name: "St Lucia Estuary Mouth", val: "-28.38,32.42" },
+      { name: "Cape Vidal", val: "-28.13,32.55" },
+      { name: "Mapelane", val: "-28.41,32.42" }
+    ];
+
     let defaultSpecies = [
       { id: 'kob', name: 'Dusky Kob (Cob)', env: 'both', minTemp: 18, maxTemp: 23, tidePref: 'high', duskBonus: true },
       { id: 'flathead', name: 'Bartail Flathead', env: 'harbour', minTemp: 20, maxTemp: 26, tidePref: 'ebb', duskBonus: false },
@@ -242,6 +283,7 @@
 
     document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('datePicker').valueAsDate = new Date();
+      renderLocationDropdown();
       loadSpeciesOptions();
       fetchForecast();
 
@@ -250,6 +292,102 @@
       document.getElementById('refreshBtn').addEventListener('click', fetchForecast);
       document.getElementById('gpsBtn').addEventListener('click', useGPS);
     });
+
+    function renderLocationDropdown() {
+      const select = document.getElementById('locationSelect');
+      const customLocs = JSON.parse(localStorage.getItem('customLocations') || '[]');
+      
+      let html = defaultLocations.map(l => `<option value="${l.val}">${l.name}</option>`).join('');
+      if (customLocs.length > 0) {
+        html += `<optgroup label="Custom Spots">`;
+        html += customLocs.map(l => `<option value="${l.lat},${l.lon}">📍 ${l.name}</option>`).join('');
+        html += `</optgroup>`;
+      }
+      select.innerHTML = html;
+      renderCustomLocList();
+    }
+
+    async function searchPlace() {
+      const query = document.getElementById('locSearchInput').value.trim();
+      const resContainer = document.getElementById('searchResults');
+      if (!query) return;
+      resContainer.innerHTML = 'Searching...';
+
+      try {
+        const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=4`);
+        const data = await res.json();
+        if (!data.results || data.results.length === 0) {
+          resContainer.innerHTML = '<div style="font-size:0.8rem; padding:5px;">No matching spots found. Try entering lat/lon below.</div>';
+          return;
+        }
+
+        resContainer.innerHTML = data.results.map(r => `
+          <div class="search-result" onclick="saveSearchedLocation('${r.name.replace(/'/g,"")}', ${r.latitude}, ${r.longitude})">
+            📌 <strong>${r.name}</strong> (${r.country || ''}) <br>
+            <small style="color:var(--text-muted);">Lat: ${r.latitude.toFixed(2)}, Lon: ${r.longitude.toFixed(2)}</small>
+          </div>
+        `).join('');
+      } catch(e) {
+        resContainer.innerHTML = '<div style="font-size:0.8rem; color:red;">Search error. Enter coords manually.</div>';
+      }
+    }
+
+    function saveSearchedLocation(name, lat, lon) {
+      saveCustomLoc(name, lat, lon);
+      document.getElementById('searchResults').innerHTML = '';
+      document.getElementById('locSearchInput').value = '';
+    }
+
+    function addManualLocation() {
+      const name = document.getElementById('customLocName').value.trim();
+      const lat = parseFloat(document.getElementById('customLat').value);
+      const lon = parseFloat(document.getElementById('customLon').value);
+
+      if (!name || isNaN(lat) || isNaN(lon)) {
+        alert('Please enter a valid Spot Name, Latitude, and Longitude.');
+        return;
+      }
+      saveCustomLoc(name, lat, lon);
+      document.getElementById('customLocName').value = '';
+      document.getElementById('customLat').value = '';
+      document.getElementById('customLon').value = '';
+    }
+
+    function saveCustomLoc(name, lat, lon) {
+      const customLocs = JSON.parse(localStorage.getItem('customLocations') || '[]');
+      customLocs.push({ name, lat, lon });
+      localStorage.setItem('customLocations', JSON.stringify(customLocs));
+      
+      renderLocationDropdown();
+      document.getElementById('locationSelect').value = `${lat},${lon}`;
+      closeModal('locModal');
+      fetchForecast();
+    }
+
+    function deleteCustomLoc(idx) {
+      const customLocs = JSON.parse(localStorage.getItem('customLocations') || '[]');
+      customLocs.splice(idx, 1);
+      localStorage.setItem('customLocations', JSON.stringify(customLocs));
+      renderLocationDropdown();
+    }
+
+    function renderCustomLocList() {
+      const customLocs = JSON.parse(localStorage.getItem('customLocations') || '[]');
+      const container = document.getElementById('customLocList');
+      if (customLocs.length === 0) {
+        container.innerHTML = `<span style="font-size:0.8rem; color:var(--text-muted);">No custom spots saved yet.</span>`;
+        return;
+      }
+      container.innerHTML = customLocs.map((l, i) => `
+        <div class="log-item">
+          <div>
+            <strong>📍 ${l.name}</strong><br>
+            <small style="color:var(--text-muted);">${l.lat}, ${l.lon}</small>
+          </div>
+          <button onclick="deleteCustomLoc(${i})" style="background:var(--poor); color:#fff; border:none; padding:4px 8px; font-size:0.75rem;">Delete</button>
+        </div>
+      `).join('');
+    }
 
     function setMode(mode) {
       currentMode = mode;
@@ -327,10 +465,8 @@
       let startHour;
 
       if (selectedDate === today) {
-        // Today: Start from the current hour
         startHour = new Date().getHours();
       } else {
-        // Future Date: Start 1 hour before sunrise
         const sunriseHour = parseInt(weatherCache.sunrise.split(':')[0]);
         startHour = Math.max(0, sunriseHour - 1);
       }
