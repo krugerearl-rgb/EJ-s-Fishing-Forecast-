@@ -123,6 +123,13 @@
     .info-section { margin-bottom: 14px; }
     .info-section h4 { color: var(--accent); font-size: 0.9rem; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
     .info-section p { font-size: 0.8rem; color: var(--text-muted); line-height: 1.4; }
+
+    /* Catch log location tabs styling */
+    .catch-loc-tabs { display: flex; background: #0d1b2a; border-radius: 8px; padding: 3px; border: 1px solid var(--accent); margin-bottom: 8px; }
+    .catch-loc-tab { border: none; background: transparent; color: var(--text-muted); font-weight: bold; padding: 6px; border-radius: 6px; font-size: 0.75rem; flex: 1; text-align: center; cursor: pointer; }
+    .catch-loc-tab.active { background: var(--accent); color: #000; }
+    .catch-loc-panel { display: none; }
+    .catch-loc-panel.active { display: block; }
   </style>
 </head>
 <body>
@@ -386,6 +393,31 @@
           <input type="number" id="logWeight" placeholder="e.g. 1.8 kg">
         </div>
       </div>
+      
+      <div class="form-group">
+        <label>Catch Location</label>
+        <div class="catch-loc-tabs">
+          <button type="button" class="catch-loc-tab active" onclick="setCatchLocMode('gps')">🎯 Auto-GPS</button>
+          <button type="button" class="catch-loc-tab" onclick="setCatchLocMode('saved')">📍 Saved Spot</button>
+          <button type="button" class="catch-loc-tab" onclick="setCatchLocMode('manual')">⌨️ Manual</button>
+        </div>
+        
+        <div id="catchGpsPanel" class="catch-loc-panel active">
+          <input type="text" id="catchGpsInput" value="Fetching current GPS..." readonly style="width:100%; font-size:0.8rem; background:rgba(0,0,0,0.3);">
+        </div>
+        <div id="catchSavedPanel" class="catch-loc-panel">
+          <select id="catchSavedSelect" style="width:100%;">
+            <option value="">Select a saved spot...</option>
+          </select>
+        </div>
+        <div id="catchManualPanel" class="catch-loc-panel">
+          <div style="display:flex; gap:6px;">
+            <input type="number" step="any" id="catchManualLat" placeholder="Latitude">
+            <input type="number" step="any" id="catchManualLon" placeholder="Longitude">
+          </div>
+        </div>
+      </div>
+
       <div class="form-group">
         <label>Attach Photo</label>
         <input type="file" id="logPhoto" accept="image/*" capture="environment">
@@ -413,6 +445,7 @@
     let map, mapMarker;
     let isMapFullscreen = false;
     let deferredPrompt = null;
+    let currentCatchCoords = "";
 
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
@@ -476,6 +509,55 @@
       document.getElementById('refreshBtn').addEventListener('click', fetchForecast);
       document.getElementById('gpsBtn').addEventListener('click', useGPS);
     });
+
+    function setCatchLocMode(mode) {
+      const tabs = document.querySelectorAll('.catch-loc-tab');
+      tabs.forEach(t => t.classList.remove('active'));
+      
+      document.getElementById('catchGpsPanel').classList.remove('active');
+      document.getElementById('catchSavedPanel').classList.remove('active');
+      document.getElementById('catchManualPanel').classList.remove('active');
+
+      if (mode === 'gps') {
+        tabs[0].classList.add('active');
+        document.getElementById('catchGpsPanel').classList.add('active');
+        updateCatchGpsField();
+      } else if (mode === 'saved') {
+        tabs[1].classList.add('active');
+        document.getElementById('catchSavedPanel').classList.add('active');
+        populateCatchSavedDropdown();
+      } else if (mode === 'manual') {
+        tabs[2].classList.add('active');
+        document.getElementById('catchManualPanel').classList.add('active');
+      }
+    }
+
+    function updateCatchGpsField() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(pos => {
+          currentCatchCoords = `${pos.coords.latitude.toFixed(4)},${pos.coords.longitude.toFixed(4)}`;
+          document.getElementById('catchGpsInput').value = `GPS Locked: ${currentCatchCoords}`;
+        }, () => {
+          document.getElementById('catchGpsInput').value = document.getElementById('locationSelect').value;
+          currentCatchCoords = document.getElementById('locationSelect').value;
+        });
+      } else {
+        document.getElementById('catchGpsInput').value = document.getElementById('locationSelect').value;
+        currentCatchCoords = document.getElementById('locationSelect').value;
+      }
+    }
+
+    function populateCatchSavedDropdown() {
+      const select = document.getElementById('catchSavedSelect');
+      const customLocs = JSON.parse(localStorage.getItem('customLocations') || '[]');
+      let html = defaultLocations.map(l => `<option value="${l.val}">${l.name}</option>`).join('');
+      if (customLocs.length > 0) {
+        html += `<optgroup label="Custom Spots">`;
+        html += customLocs.map(l => `<option value="${l.lat},${l.lon}">📍 ${l.name}</option>`).join('');
+        html += `</optgroup>`;
+      }
+      select.innerHTML = html;
+    }
 
     function quickSearchSpecies() {
       const query = document.getElementById('custName').value.toLowerCase().trim();
@@ -888,7 +970,17 @@
       const wt = document.getElementById('logWeight').value;
       const photoInput = document.getElementById('logPhoto');
 
-      const newLog = { species, len, wt, date: new Date().toLocaleDateString(), img: '' };
+      let catchLoc = currentCatchCoords;
+      const activeTabPanel = document.querySelector('.catch-loc-panel.active').id;
+      if (activeTabPanel === 'catchSavedPanel') {
+        catchLoc = document.getElementById('catchSavedSelect').value || currentCatchCoords;
+      } else if (activeTabPanel === 'catchManualPanel') {
+        const mLat = document.getElementById('catchManualLat').value;
+        const mLon = document.getElementById('catchManualLon').value;
+        if (mLat && mLon) catchLoc = `${mLat},${mLon}`;
+      }
+
+      const newLog = { species, len, wt, location: catchLoc, date: new Date().toLocaleDateString(), img: '' };
 
       if (photoInput.files && photoInput.files[0]) {
         const reader = new FileReader();
@@ -922,7 +1014,7 @@
           <div>
             <strong>${l.species}</strong><br>
             ${l.len ? l.len + ' cm | ' : ''}${l.wt ? l.wt + ' kg' : ''}<br>
-            <small style="color:var(--text-muted);">${l.date}</small>
+            <small style="color:var(--text-muted);">📍 ${l.location || 'N/A'} • ${l.date}</small>
           </div>
         </div>
       `).join('');
@@ -930,6 +1022,9 @@
 
     function openModal(id) {
       if (id === 'viewLogsModal') loadLogsUI();
+      if (id === 'catchModal') {
+        setCatchLocMode('gps');
+      }
       document.getElementById(id).style.display = 'flex';
 
       if (id === 'locModal') {
