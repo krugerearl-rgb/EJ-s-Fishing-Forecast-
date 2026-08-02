@@ -6,6 +6,16 @@
   <meta name="theme-color" content="#0d1b2a">
   <title>EJ's Fishing Forecast</title>
   
+  <!-- Mobile App Manifest & Web App Icon (Option 4: Dusk Horizon) -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="EJ's Fishing">
+  
+  <!-- Inline Data URI for Icon Option 4 (Dusk Horizon) -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><defs><linearGradient id='grad' x1='0%' y1='0%' x2='0%' y2='100%'><stop offset='0%' style='stop-color:%23d90429;stop-opacity:1'/><stop offset='40%' style='stop-color:%23ffb703;stop-opacity:1'/><stop offset='80%' style='stop-color:%230077b6;stop-opacity:1'/><stop offset='100%' style='stop-color:%230d1b2a;stop-opacity:1'/></linearGradient></defs><rect width='512' height='512' rx='110' fill='url(%23grad)'/><circle cx='256' cy='230' r='70' fill='%23fff' opacity='0.9'/><path d='M0 280 Q 128 250, 256 280 T 512 280 L 512 512 L 0 512 Z' fill='%230d1b2a' opacity='0.95'/><path d='M220 280 C 240 220, 290 200, 330 210 C 310 240, 280 260, 260 280 Z' fill='%23e0e1dd'/></svg>">
+  <link rel="apple-touch-icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><defs><linearGradient id='grad' x1='0%' y1='0%' x2='0%' y2='100%'><stop offset='0%' style='stop-color:%23d90429;stop-opacity:1'/><stop offset='40%' style='stop-color:%23ffb703;stop-opacity:1'/><stop offset='80%' style='stop-color:%230077b6;stop-opacity:1'/><stop offset='100%' style='stop-color:%230d1b2a;stop-opacity:1'/></linearGradient></defs><rect width='512' height='512' rx='110' fill='url(%23grad)'/><circle cx='256' cy='230' r='70' fill='%23fff' opacity='0.9'/><path d='M0 280 Q 128 250, 256 280 T 512 280 L 512 512 L 0 512 Z' fill='%230d1b2a' opacity='0.95'/><path d='M220 280 C 240 220, 290 200, 330 210 C 310 240, 280 260, 260 280 Z' fill='%23e0e1dd'/></svg>">
+
   <!-- Leaflet CSS & JS for Interactive Satellite/Google Earth View -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -196,7 +206,7 @@
 
       <div class="info-section">
         <h4>🌙 Night-Time Fishing Engine & Optimal Hours</h4>
-        <p>Certain target predators (like Dusky Kob, Rockcod, and Speckled Snapper) feed heavily under dark cover. The engine analyzes nocturnal conditions—including pressure drops, wind comfort, and tide alignment after sunset—to display dedicated <strong>🌙 Night Peak</strong> feeding windows (e.g., 07:00 PM – 11:30 PM) and bonus confidence ratings.</p>
+        <p>Certain target predators feed heavily under dark cover. The engine analyzes nocturnal conditions—including pressure drops, wind comfort, and tide alignment after sunset—to display dedicated <strong>🌙 Night Peak</strong> feeding windows and bonus confidence ratings.</p>
       </div>
 
       <div class="info-section">
@@ -206,7 +216,7 @@
 
       <div class="info-section">
         <h4>🔍 Custom Species Fine-Tuning & Auto-Fill</h4>
-        <p>When adding a custom target fish, you can specify tidal stages, light & night preferences (Dawn/Dusk, Daylight, or Night Fishing), maximum swell limits, wind caps, and barometric pressure trends. Use <strong>"🔍 Auto-Fill Profile"</strong> to instantly fetch scientific baseline profiles including nocturnal preferences!</p>
+        <p>When adding a custom target fish, you can specify tidal stages, light & night preferences, maximum swell limits, wind caps, and barometric pressure trends. Use <strong>"🔍 Auto-Fill Profile"</strong> to instantly fetch scientific baseline profiles!</p>
       </div>
 
       <div class="info-section">
@@ -223,12 +233,11 @@
     </div>
   </div>
 
-  <!-- Modal: Add Custom Species with In-Depth Fine-Tuning & Quick Lookup -->
+  <!-- Modal: Add Custom Species -->
   <div id="customModal" class="modal">
     <div class="modal-content">
       <div class="modal-title">➕ Add & Fine-Tune Target Species</div>
       
-      <!-- Quick Search & Auto-Fill Section -->
       <div class="form-group" style="background: rgba(0, 180, 216, 0.1); padding: 10px; border-radius: 8px; border: 1px solid var(--accent);">
         <label style="color: var(--accent); font-weight: bold;">🔍 QUICK LOOKUP & AUTO-FILL</label>
         <div style="display:flex; gap:6px; margin-top:4px;">
@@ -238,7 +247,6 @@
         <small id="lookupStatus" style="color: var(--text-muted); font-size: 0.7rem; display: block; margin-top: 4px;">Type fish name and tap Auto-Fill to fetch ideal temp, tides, daylight or night preferences.</small>
       </div>
 
-      <!-- Detailed Environmental Profiles -->
       <div class="form-group" style="margin-top:12px;">
         <label>Primary Environment Habitat</label>
         <select id="custEnv">
@@ -388,7 +396,6 @@
     let map, mapMarker;
     let isMapFullscreen = false;
 
-    // Database of Common Species Profiles for Quick Auto-Fill Search (Includes Night Fishing preferences)
     const speciesKnowledgeBase = {
       'kob': { env: 'both', minTemp: 18, maxTemp: 23, tide: 'high', time: 'night', maxSwell: 2.0, maxWind: 25, baro: 'falling' },
       'cob': { env: 'both', minTemp: 18, maxTemp: 23, tide: 'high', time: 'night', maxSwell: 2.0, maxWind: 25, baro: 'falling' },
@@ -433,7 +440,6 @@
       document.getElementById('gpsBtn').addEventListener('click', useGPS);
     });
 
-    // Quick Lookup / Auto-fill Species Logic (Includes Night-Time Auto fill)
     function quickSearchSpecies() {
       const query = document.getElementById('custName').value.toLowerCase().trim();
       const status = document.getElementById('lookupStatus');
@@ -447,7 +453,6 @@
       status.innerText = "🔍 Checking species database...";
       status.style.color = "#00b4d8";
 
-      // Match against local database
       let match = null;
       for (let key in speciesKnowledgeBase) {
         if (query.includes(key) || key.includes(query)) {
@@ -469,7 +474,6 @@
         status.innerText = `✅ Auto-filled profile options for "${query}" (Time: ${match.time.toUpperCase()})!`;
         status.style.color = "#38b000";
       } else {
-        // Fallback default optimal settings for general coastal predators
         document.getElementById('custEnv').value = 'surf';
         document.getElementById('custMinTemp').value = 18;
         document.getElementById('custMaxTemp').value = 24;
@@ -491,7 +495,6 @@
         attribution: 'Esri World Imagery'
       }).addTo(map);
 
-      // UPDATED: Auto-fetch nearest location name when tapping on the satellite map
       map.on('click', async function(e) {
         const lat = e.latlng.lat.toFixed(4);
         const lon = e.latlng.lng.toFixed(4);
@@ -499,7 +502,6 @@
         document.getElementById('customLat').value = lat;
         document.getElementById('customLon').value = lon;
         
-        // Fetch location name dynamically via reverse geocoding API
         try {
           const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${lat},${lon}&count=1`);
           const data = await res.json();
@@ -531,7 +533,6 @@
       setTimeout(() => { if (map) map.invalidateSize(); }, 200);
     }
 
-    // UPDATED: Clean Dropdown Formatting for Custom Locations
     function renderLocationDropdown() {
       const select = document.getElementById('locationSelect');
       const customLocs = JSON.parse(localStorage.getItem('customLocations') || '[]');
@@ -570,7 +571,6 @@
       }
     }
 
-    // UPDATED: Instantly save search result with full location name
     function saveSearchedLocation(name, lat, lon) {
       saveCustomLoc(name, lat, lon);
       document.getElementById('searchResults').innerHTML = '';
@@ -769,7 +769,6 @@
           score += 15; bonuses.push('🌡️ Ideal Temp');
         }
 
-        // Night vs Daylight vs Dawn/Dusk Scoring & Time Windows
         if (sp.timePref === 'night') {
           score += 18; 
           bonuses.push('🌙 Optimal Night Feeding');
