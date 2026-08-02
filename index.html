@@ -113,8 +113,11 @@
     /* Map Wrapper & Fullscreen */
     .map-wrapper { position: relative; margin: 10px 0; }
     #mapContainer { height: 220px; border-radius: 8px; border: 1px solid var(--accent); z-index: 1; transition: all 0.3s ease; }
-    .map-fullscreen { position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important; z-index: 9999 !important; border-radius: 0 !important; }
+    .map-fullscreen { position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important; z-index: 9999 !important; border-radius: 0 !important; border: none !important; }
     .fullscreen-btn { position: absolute; top: 10px; right: 10px; z-index: 1000; background: rgba(13,27,42,0.85); color: var(--accent); border: 1px solid var(--accent); padding: 6px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; cursor: pointer; }
+    .map-header-bar { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 50px; background: rgba(13,27,42,0.95); border-bottom: 1px solid var(--accent); z-index: 1001; align-items: center; justify-content: space-between; padding: 0 15px; }
+    .map-fullscreen .map-header-bar { display: flex; }
+    .map-fullscreen .fullscreen-btn { display: none; } /* Replaced by header bar collapse button */
 
     /* Info Tab Styling */
     .info-section { margin-bottom: 14px; }
@@ -221,7 +224,7 @@
 
       <div class="info-section">
         <h4>🗺️ Satellite Pinpoint Spot Picker</h4>
-        <p>Use high-resolution Satellite Imagery to drop pins on exact rock ledges, gullies, or estuary banks.</p>
+        <p>Use high-resolution Satellite Imagery combined with Google-style town labels and roads to drop pins on exact rock ledges, gullies, or estuary banks.</p>
       </div>
 
       <div class="info-section">
@@ -317,12 +320,17 @@
       <div class="modal-title">📍 Add & Manage Custom Spots</div>
       
       <div class="form-group">
-        <label>🌍 OPTION 1: Tap Anywhere on Map (Satellite View)</label>
+        <label>🌍 OPTION 1: Tap Anywhere on Map (Google Hybrid View)</label>
         <div class="map-wrapper">
-          <div id="mapContainer"></div>
+          <div id="mapContainer">
+            <div class="map-header-bar">
+              <span style="font-weight:bold; color:var(--accent); font-size:0.9rem;">📍 Pinpoint Spot Picker</span>
+              <button type="button" onclick="toggleMapFullscreen()" style="background:var(--accent); color:#000; padding:6px 12px; font-size:0.75rem; border-radius:6px; font-weight:bold;">✖ Collapse Map</button>
+            </div>
+          </div>
           <button type="button" class="fullscreen-btn" id="fsToggleBtn" onclick="toggleMapFullscreen()">⛶ Fullscreen</button>
         </div>
-        <small style="color:var(--accent); font-size:0.7rem;">Tap anywhere on the coastline/water to drop a pin.</small>
+        <small style="color:var(--accent); font-size:0.7rem;">Tap anywhere on the map to drop a pin and read town/location names.</small>
       </div>
 
       <div style="text-align:center; font-size:0.75rem; color:var(--text-muted); margin: 8px 0;">— OR —</div>
@@ -491,9 +499,21 @@
     function initInteractiveMap() {
       if (map) return;
       map = L.map('mapContainer').setView([-28.78, 32.05], 10);
-      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      
+      // Satellite Imagery Base Layer
+      const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
         attribution: 'Esri World Imagery'
-      }).addTo(map);
+      });
+
+      // Google-style Hybrid Labels & Roads Overlay Layer (adds town names, roads, boundaries)
+      const labelsLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png', {
+        attribution: '© CartoDB, OpenStreetMap',
+        subdomains: 'abcd',
+        maxZoom: 20
+      });
+
+      satelliteLayer.addTo(map);
+      labelsLayer.addTo(map);
 
       map.on('click', async function(e) {
         const lat = e.latlng.lat.toFixed(4);
@@ -518,17 +538,12 @@
 
     function toggleMapFullscreen() {
       const mapEl = document.getElementById('mapContainer');
-      const btn = document.getElementById('fsToggleBtn');
       isMapFullscreen = !isMapFullscreen;
       
       if (isMapFullscreen) {
         mapEl.classList.add('map-fullscreen');
-        btn.innerText = '✖ Exit Fullscreen';
-        btn.style.position = 'fixed'; btn.style.top = '15px'; btn.style.right = '15px';
       } else {
         mapEl.classList.remove('map-fullscreen');
-        btn.innerText = '⛶ Fullscreen';
-        btn.style.position = 'absolute'; btn.style.top = '10px'; btn.style.right = '10px';
       }
       setTimeout(() => { if (map) map.invalidateSize(); }, 200);
     }
@@ -891,7 +906,7 @@
 
     function saveCustomSpecies() {
       const name = document.getElementById('custName').value.trim();
-      const env = document.getElementById('custEnv').value;
+      const env = document.getElementById('custEnv').value,
       const minTemp = parseFloat(document.getElementById('custMinTemp').value) || 18;
       const maxTemp = parseFloat(document.getElementById('custMaxTemp').value) || 24;
       const tidePref = document.getElementById('custTidePref').value;
