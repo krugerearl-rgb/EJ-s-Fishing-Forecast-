@@ -5,6 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#0d1b2a">
   <title>EJ's Fishing Forecast</title>
+  
+  <!-- Leaflet CSS & JS for Interactive Satellite/Google Earth View -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
   <style>
     :root {
       --bg: #0d1b2a;
@@ -80,16 +85,19 @@
     .species-desc { font-size: 0.8rem; color: var(--text-muted); line-height: 1.3; }
 
     /* Modal Forms */
-    .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 100; padding: 20px; align-items: center; justify-content: center; overflow-y: auto; }
-    .modal-content { background: var(--card-bg); border-radius: 12px; padding: 20px; width: 100%; max-width: 450px; border: 1px solid var(--accent); }
+    .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 100; padding: 15px; align-items: center; justify-content: center; overflow-y: auto; }
+    .modal-content { background: var(--card-bg); border-radius: 12px; padding: 18px; width: 100%; max-width: 450px; border: 1px solid var(--accent); }
     .modal-title { font-weight: bold; margin-bottom: 12px; font-size: 1.1rem; color: var(--accent); }
     .form-group { margin-bottom: 10px; }
     .form-group label { display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px; }
     
-    .logs-list { max-height: 250px; overflow-y: auto; margin-bottom: 12px; }
+    .logs-list { max-height: 180px; overflow-y: auto; margin-bottom: 12px; }
     .log-item { background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; margin-bottom: 8px; font-size: 0.8rem; display: flex; justify-content: space-between; align-items: center; }
     .search-result { background: rgba(255,255,255,0.05); padding: 8px; border-radius: 6px; margin-top: 4px; cursor: pointer; font-size: 0.85rem; }
     .search-result:hover { background: rgba(0,180,216,0.2); }
+
+    /* Interactive Satellite Map Styling */
+    #mapContainer { height: 220px; border-radius: 8px; margin: 10px 0; border: 1px solid var(--accent); z-index: 1; }
   </style>
 </head>
 <body>
@@ -166,11 +174,20 @@
   <!-- Modal: Add / Manage Custom Location -->
   <div id="locModal" class="modal">
     <div class="modal-content">
-      <div class="modal-title">📍 Add & Manage Locations</div>
+      <div class="modal-title">📍 Add & Manage Custom Spots</div>
       
-      <!-- Location Search -->
+      <!-- Option A: Interactive Satellite / Earth Map -->
       <div class="form-group">
-        <label>Search Place Name (Google Maps Engine)</label>
+        <label>🌍 OPTION 1: Tap Anywhere on Map (Satellite View)</label>
+        <div id="mapContainer"></div>
+        <small style="color:var(--accent); font-size:0.7rem;">Tap anywhere on the coastline/water to drop a pin.</small>
+      </div>
+
+      <div style="text-align:center; font-size:0.75rem; color:var(--text-muted); margin: 8px 0;">— OR —</div>
+
+      <!-- Option B: Text Search & Manual Lat/Lon -->
+      <div class="form-group">
+        <label>🔍 OPTION 2: Type Location Name</label>
         <div style="display:flex; gap:6px;">
           <input type="text" id="locSearchInput" placeholder="e.g. Ballito, Tugela Mouth">
           <button onclick="searchPlace()" style="flex:none; padding:8px 12px;">Search</button>
@@ -178,20 +195,19 @@
         <div id="searchResults"></div>
       </div>
 
-      <div style="text-align:center; font-size:0.75rem; color:var(--text-muted); margin: 8px 0;">— OR ENTER GPS DIRECTLY —</div>
-
-      <div class="form-group">
-        <label>Spot Name & Coordinates</label>
-        <input type="text" id="customLocName" placeholder="Spot Name (e.g. Pipeline)">
+      <!-- Save Box -->
+      <div class="form-group" style="margin-top:10px;">
+        <label>Spot Details to Save</label>
+        <input type="text" id="customLocName" placeholder="Spot Name (e.g. Secret Ledge)">
         <div style="display:flex; gap:8px; margin-top:6px;">
-          <input type="number" step="any" id="customLat" placeholder="Latitude (-28.79)">
-          <input type="number" step="any" id="customLon" placeholder="Longitude (32.08)">
+          <input type="number" step="any" id="customLat" placeholder="Latitude">
+          <input type="number" step="any" id="customLon" placeholder="Longitude">
         </div>
       </div>
-      <button onclick="addManualLocation()" style="width:100%; margin-top:6px;">💾 Save New Spot</button>
+      <button onclick="addManualLocation()" style="width:100%; margin-top:6px; background:var(--accent); color:#000;">💾 Save This Custom Spot</button>
 
       <div style="border-top: 1px solid rgba(255,255,255,0.1); margin: 15px 0 10px;"></div>
-      <div class="modal-title" style="font-size: 0.9rem;">🗑️ Delete Custom Spots</div>
+      <div class="modal-title" style="font-size: 0.9rem;">🗑️ Delete Saved Spots</div>
       <div id="customLocList" class="logs-list">No custom spots added.</div>
 
       <button onclick="closeModal('locModal')" style="width: 100%; background: transparent; color: var(--text); border:1px solid var(--accent); margin-top:10px;">Close</button>
@@ -263,6 +279,7 @@
     let currentMode = 'surf';
     let weatherCache = {};
     let rawHourly = [];
+    let map, mapMarker;
 
     const defaultLocations = [
       { name: "Richards Bay (Surf)", val: "-28.79,32.08" },
@@ -293,6 +310,36 @@
       document.getElementById('gpsBtn').addEventListener('click', useGPS);
     });
 
+    function initInteractiveMap() {
+      if (map) return; // Prevent re-initializing
+
+      // Default map centered around KZN coast
+      map = L.map('mapContainer').setView([-28.78, 32.05], 10);
+
+      // Google Earth / Esri World Imagery Layer (High Res Satellite)
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Esri World Imagery'
+      }).addTo(map);
+
+      // Map Click Event
+      map.on('click', function(e) {
+        const lat = e.latlng.lat.toFixed(4);
+        const lon = e.latlng.lng.toFixed(4);
+
+        if (mapMarker) {
+          mapMarker.setLatLng(e.latlng);
+        } else {
+          mapMarker = L.marker(e.latlng).addTo(map);
+        }
+
+        document.getElementById('customLat').value = lat;
+        document.getElementById('customLon').value = lon;
+        if(!document.getElementById('customLocName').value) {
+          document.getElementById('customLocName').value = `Picked Spot (${lat}, ${lon})`;
+        }
+      });
+    }
+
     function renderLocationDropdown() {
       const select = document.getElementById('locationSelect');
       const customLocs = JSON.parse(localStorage.getItem('customLocations') || '[]');
@@ -317,7 +364,7 @@
         const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=4`);
         const data = await res.json();
         if (!data.results || data.results.length === 0) {
-          resContainer.innerHTML = '<div style="font-size:0.8rem; padding:5px;">No matching spots found. Try entering lat/lon below.</div>';
+          resContainer.innerHTML = '<div style="font-size:0.8rem; padding:5px;">No matching spots found. Tap map above instead.</div>';
           return;
         }
 
@@ -328,12 +375,14 @@
           </div>
         `).join('');
       } catch(e) {
-        resContainer.innerHTML = '<div style="font-size:0.8rem; color:red;">Search error. Enter coords manually.</div>';
+        resContainer.innerHTML = '<div style="font-size:0.8rem; color:red;">Search error. Tap map above instead.</div>';
       }
     }
 
     function saveSearchedLocation(name, lat, lon) {
-      saveCustomLoc(name, lat, lon);
+      document.getElementById('customLocName').value = name;
+      document.getElementById('customLat').value = lat;
+      document.getElementById('customLon').value = lon;
       document.getElementById('searchResults').innerHTML = '';
       document.getElementById('locSearchInput').value = '';
     }
@@ -344,7 +393,7 @@
       const lon = parseFloat(document.getElementById('customLon').value);
 
       if (!name || isNaN(lat) || isNaN(lon)) {
-        alert('Please enter a valid Spot Name, Latitude, and Longitude.');
+        alert('Please tap the map or search to select Latitude and Longitude.');
         return;
       }
       saveCustomLoc(name, lat, lon);
@@ -604,7 +653,7 @@
 
       container.innerHTML = logs.map(l => `
         <div class="log-item">
-          ${l.img ? `<img src="${l.img}" class="log-img">` : '<div style="width:50px;height:50px;background:#111;border-radius:6px;"></div>'}
+          ${l.img ? `<img src="${l.img}" class="log-img" style="width:50px;height:50px;object-fit:cover;border-radius:6px;">` : '<div style="width:50px;height:50px;background:#111;border-radius:6px;"></div>'}
           <div>
             <strong>${l.species}</strong><br>
             ${l.len ? l.len + ' cm | ' : ''}${l.wt ? l.wt + ' kg' : ''}<br>
@@ -617,7 +666,15 @@
     function openModal(id) {
       if (id === 'viewLogsModal') loadLogsUI();
       document.getElementById(id).style.display = 'flex';
+
+      if (id === 'locModal') {
+        setTimeout(() => {
+          initInteractiveMap();
+          if (map) map.invalidateSize();
+        }, 200);
+      }
     }
+
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
     function loadSpeciesOptions() {
