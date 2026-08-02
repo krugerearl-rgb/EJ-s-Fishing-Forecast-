@@ -33,12 +33,18 @@
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
     body { background-color: var(--bg); color: var(--text); padding-bottom: 30px; -webkit-tap-highlight-color: transparent; }
     
+    /* Prominent Install Banner */
+    .install-banner-container { background: linear-gradient(135deg, #ffb703 0%, #fb8500 100%); padding: 12px 15px; text-align: center; border-bottom: 2px solid #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.4); display: none; }
+    .install-banner-btn { background: #0d1b2a; color: #ffb703; border: 2px solid #fff; border-radius: 8px; padding: 10px 16px; font-size: 0.95rem; font-weight: 800; cursor: pointer; width: 100%; max-width: 420px; box-shadow: 0 2px 6px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; gap: 8px; margin: 0 auto; text-transform: uppercase; letter-spacing: 0.5px; }
+    .install-banner-btn:active { transform: scale(0.98); }
+
     .header-container { position: relative; background: linear-gradient(180deg, #03045e 0%, #0077b6 100%); padding: 20px 15px 35px; text-align: center; overflow: hidden; }
     .header-title { font-size: 1.4rem; font-weight: 800; letter-spacing: 1px; color: #fff; text-shadow: 0 2px 4px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; gap: 8px; }
     .wave-bg { position: absolute; bottom: 0; left: 0; width: 200%; height: 20px; background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" preserveAspectRatio="none"><path d="M0,0 C150,90 350,-40 500,40 C650,120 900,10 1200,40 L1200,120 L0,120 Z" fill="%230d1b2a"></path></svg>') repeat-x; animation: wave 12s linear infinite; }
     @keyframes wave { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
 
-    .info-btn-header { position: absolute; top: 12px; right: 12px; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); color: #fff; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; font-weight: bold; cursor: pointer; z-index: 10; }
+    .header-buttons { position: absolute; top: 12px; right: 12px; display: flex; gap: 6px; z-index: 10; }
+    .header-icon-btn { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); color: #fff; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; font-weight: bold; cursor: pointer; }
 
     .app-container { padding: 15px; max-width: 500px; margin: 0 auto; }
     .status-banner { background: rgba(255,183,3,0.15); border: 1px solid var(--mod); color: var(--mod); padding: 8px 12px; border-radius: 8px; font-size: 0.8rem; margin-bottom: 12px; display: none; text-align: center; }
@@ -118,10 +124,19 @@
 </head>
 <body>
 
+  <!-- Prominent Install Banner (Appears automatically when installable) -->
+  <div id="installBanner" class="install-banner-container">
+    <button class="install-banner-btn" onclick="installApp()">
+      <span>📲</span> Install App to Home Screen
+    </button>
+  </div>
+
   <!-- Header -->
   <div class="header-container">
     <div class="header-title">🎣 EJ'S FISHING FORECAST</div>
-    <div class="info-btn-header" onclick="openModal('infoModal')" title="About this App">ℹ️</div>
+    <div class="header-buttons">
+      <div class="header-icon-btn" onclick="openModal('infoModal')" title="About this App">ℹ️</div>
+    </div>
     <div class="wave-bg"></div>
   </div>
 
@@ -200,7 +215,7 @@
 
       <div class="info-section">
         <h4>🌙 Night-Time Fishing Engine & Optimal Hours</h4>
-        <p>Certain target predators feed heavily under dark cover. The engine analyzes nocturnal conditions—including pressure drops, wind comfort, and tide alignment after sunset—to display dedicated <strong>🌙 Night Peak</strong> feeding windows and bonus confidence ratings.</p>
+        <p>Certain target predators feed heavily under dark cover. The engine analyzes nocturnal conditions—including pressure drops, wind comfort, and tide alignment after sunset—up front to display dedicated <strong>🌙 Night Peak</strong> feeding windows and bonus confidence ratings.</p>
       </div>
 
       <div class="info-section">
@@ -394,6 +409,26 @@
     let rawHourly = [];
     let map, mapMarker;
     let isMapFullscreen = false;
+    let deferredPrompt = null;
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      document.getElementById('installBanner').style.display = 'block';
+    });
+
+    async function installApp() {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          document.getElementById('installBanner').style.display = 'none';
+        }
+        deferredPrompt = null;
+      } else {
+        alert('To add this app to your home screen:\n\n• On Android (Chrome): Tap the browser menu (3 dots) and select "Add to Home screen" or "Install app".\n• On iPhone (Safari): Tap the Share button and select "Add to Home Screen".');
+      }
+    }
 
     const speciesKnowledgeBase = {
       'kob': { env: 'both', minTemp: 18, maxTemp: 23, tide: 'high', time: 'night', maxSwell: 2.0, maxWind: 25, baro: 'falling' },
@@ -491,7 +526,6 @@
       if (map) return;
       map = L.map('mapContainer').setView([-28.78, 32.05], 11);
       
-      // UPDATED: Swapped to Google Maps Hybrid Tile Layer (Satellite Aerial Imagery + Roads & Town Labels)
       const googleHybridLayer = L.tileLayer('https://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', {
         maxZoom: 20,
         subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
