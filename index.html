@@ -1,395 +1,994 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fishing Forecast & Catch Log</title>
-    <style>
-        :root {
-            --bg-color: #0f172a;
-            --card-bg: #1e293b;
-            --accent-color: #0ea5e9;
-            --accent-hover: #0284c7;
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-            --border-color: #334155;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0d1b2a">
+  <title>EJ's Fishing Forecast</title>
+  
+  <!-- Mobile App Manifest & Web App Icon -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="EJ's Fishing">
+  
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><defs><linearGradient id='grad' x1='0%' y1='0%' x2='0%' y2='100%'><stop offset='0%' style='stop-color:%23d90429;stop-opacity:1'/><stop offset='40%' style='stop-color:%23ffb703;stop-opacity:1'/><stop offset='80%' style='stop-color:%230077b6;stop-opacity:1'/><stop offset='100%' style='stop-color:%230d1b2a;stop-opacity:1'/></linearGradient></defs><rect width='512' height='512' rx='110' fill='url(%23grad)'/><circle cx='256' cy='230' r='70' fill='%23fff' opacity='0.9'/><path d='M0 280 Q 128 250, 256 280 T 512 280 L 512 512 L 0 512 Z' fill='%230d1b2a' opacity='0.95'/><path d='M220 280 C 240 220, 290 200, 330 210 C 310 240, 280 260, 260 280 Z' fill='%23e0e1dd'/></svg>">
+  <link rel="apple-touch-icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><defs><linearGradient id='grad' x1='0%' y1='0%' x2='0%' y2='100%'><stop offset='0%' style='stop-color:%23d90429;stop-opacity:1'/><stop offset='40%' style='stop-color:%23ffb703;stop-opacity:1'/><stop offset='80%' style='stop-color:%230077b6;stop-opacity:1'/><stop offset='100%' style='stop-color:%230d1b2a;stop-opacity:1'/></linearGradient></defs><rect width='512' height='512' rx='110' fill='url(%23grad)'/><circle cx='256' cy='230' r='70' fill='%23fff' opacity='0.9'/><path d='M0 280 Q 128 250, 256 280 T 512 280 L 512 512 L 0 512 Z' fill='%230d1b2a' opacity='0.95'/><path d='M220 280 C 240 220, 290 200, 330 210 C 310 240, 280 260, 260 280 Z' fill='%23e0e1dd'/></svg>">
 
-        body {
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
+  <!-- Leaflet CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-        .container {
-            width: 100%;
-            max-width: 480px;
-        }
+  <style>
+    :root {
+      --bg: #0d1b2a;
+      --card-bg: #1b263b;
+      --accent: #00b4d8;
+      --text: #e0e1dd;
+      --text-muted: #778da9;
+      --good: #38b000;
+      --mod: #ffb703;
+      --poor: #d90429;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); padding-bottom: 30px; -webkit-tap-highlight-color: transparent; }
+    
+    /* Prominent Install Banner & Always-Visible App Button */
+    .install-banner-container { background: linear-gradient(135deg, #ffb703 0%, #fb8500 100%); padding: 12px 15px; text-align: center; border-bottom: 2px solid #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.4); display: none; }
+    .install-banner-btn { background: #0d1b2a; color: #ffb703; border: 2px solid #fff; border-radius: 8px; padding: 10px 16px; font-size: 0.95rem; font-weight: 800; cursor: pointer; width: 100%; max-width: 420px; box-shadow: 0 2px 6px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; gap: 8px; margin: 0 auto; text-transform: uppercase; letter-spacing: 0.5px; }
+    .install-banner-btn:active { transform: scale(0.98); }
 
-        .card {
-            background-color: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            padding: 16px;
-            margin-bottom: 16px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        }
+    .header-container { position: relative; background: linear-gradient(180deg, #03045e 0%, #0077b6 100%); padding: 20px 15px 35px; text-align: center; overflow: hidden; }
+    .header-title { font-size: 1.4rem; font-weight: 800; letter-spacing: 1px; color: #fff; text-shadow: 0 2px 4px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .wave-bg { position: absolute; bottom: 0; left: 0; width: 200%; height: 20px; background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" preserveAspectRatio="none"><path d="M0,0 C150,90 350,-40 500,40 C650,120 900,10 1200,40 L1200,120 L0,120 Z" fill="%230d1b2a"></path></svg>') repeat-x; animation: wave 12s linear infinite; }
+    @keyframes wave { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
 
-        .species-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-        }
+    .header-buttons { position: absolute; top: 12px; right: 12px; display: flex; gap: 6px; z-index: 10; }
+    .header-icon-btn { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); color: #fff; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; font-weight: bold; cursor: pointer; }
 
-        .species-title {
-            font-size: 1.1rem;
-            font-weight: 700;
-            margin: 0;
-        }
+    .app-container { padding: 15px; max-width: 500px; margin: 0 auto; }
+    .status-banner { background: rgba(255,183,3,0.15); border: 1px solid var(--mod); color: var(--mod); padding: 8px 12px; border-radius: 8px; font-size: 0.8rem; margin-bottom: 12px; display: none; text-align: center; }
+    
+    .control-card { background: var(--card-bg); border-radius: 12px; padding: 12px; margin-bottom: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+    .row { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; }
+    .row:last-child { margin-bottom: 0; }
+    
+    select, input, button { background: #0d1b2a; border: 1px solid var(--accent); color: var(--text); padding: 10px; border-radius: 8px; font-size: 0.9rem; flex: 1; outline: none; }
+    button { background: var(--accent); color: #000; font-weight: bold; border: none; cursor: pointer; transition: opacity 0.2s; }
+    button:active { opacity: 0.8; }
+    .btn-icon { flex: 0 0 42px; width: 42px; text-align: center; padding: 0; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; }
+    .btn-sm { padding: 6px 10px; font-size: 0.8rem; flex: none; }
+    
+    .mode-toggle { display: flex; background: #0d1b2a; border-radius: 8px; padding: 3px; border: 1px solid var(--accent); margin-top: 10px; }
+    .mode-btn { border: none; background: transparent; color: var(--text-muted); font-weight: bold; padding: 8px; border-radius: 6px; font-size: 0.85rem; flex: 1; text-align: center; }
+    .mode-btn.active { background: var(--accent); color: #000; }
 
-        .score-badge {
-            background-color: #10b981;
-            color: #fff;
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-weight: 700;
-            font-size: 0.85rem;
-        }
+    .hourly-title { font-size: 0.8rem; font-weight: bold; color: var(--accent); text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px; display: flex; justify-content: space-between; }
+    .hourly-scroll { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 5px; scrollbar-width: none; }
+    .hourly-scroll::-webkit-scrollbar { display: none; }
+    .hourly-card { background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 8px; flex: 0 0 90px; text-align: center; }
+    .hourly-time { font-size: 0.75rem; color: var(--text-muted); font-weight: bold; margin-bottom: 4px; }
+    .hourly-temp { font-size: 0.95rem; font-weight: bold; color: #fff; }
+    .hourly-wind { font-size: 0.75rem; color: var(--accent); margin: 3px 0; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 3px; }
+    .wind-arrow { display: inline-block; font-size: 0.85rem; transition: transform 0.3s; }
+    .comfort-badge { font-size: 0.65rem; padding: 2px 4px; border-radius: 4px; font-weight: bold; margin-top: 4px; display: block; }
+    .comfort-good { background: rgba(56,176,0,0.2); color: var(--good); }
+    .comfort-mod { background: rgba(255,183,3,0.2); color: var(--mod); }
+    .comfort-poor { background: rgba(217,4,41,0.2); color: var(--poor); }
 
-        .best-time {
-            font-size: 0.85rem;
-            color: #38bdf8;
-            margin-bottom: 12px;
-            font-weight: 500;
-        }
+    .metrics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
+    .metric-box { background: rgba(255,255,255,0.05); padding: 8px; border-radius: 8px; text-align: center; }
+    .metric-val { font-size: 1rem; font-weight: bold; color: #fff; margin-top: 2px; }
+    .metric-label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; }
 
-        .tags-container {
-            display: flex;
-            gap: 6px;
-            flex-wrap: wrap;
-            margin-bottom: 12px;
-        }
+    .section-title { font-size: 1rem; font-weight: bold; margin: 15px 0 10px; color: var(--accent); display: flex; justify-content: space-between; align-items: center; }
+    .species-card { background: var(--card-bg); border-radius: 12px; padding: 14px; margin-bottom: 12px; border-left: 5px solid var(--accent); box-shadow: 0 2px 8px rgba(0,0,0,0.2); position: relative; }
+    .species-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .species-name { font-weight: bold; font-size: 1rem; display: flex; align-items: center; gap: 6px; }
+    .species-score { font-size: 1.1rem; font-weight: 800; padding: 4px 10px; border-radius: 20px; color: #fff; }
+    .score-good { background: var(--good); }
+    .score-mod { background: var(--mod); color: #000; }
+    .score-poor { background: var(--poor); }
+    
+    .time-window { font-size: 0.85rem; color: #00b4d8; font-weight: 600; margin-bottom: 8px; display: flex; align-items: center; gap: 5px; }
+    .time-window.night-window { color: #9d4edd; }
+    .badge-container { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; }
+    .badge { font-size: 0.7rem; background: rgba(255,255,255,0.1); padding: 3px 8px; border-radius: 12px; color: var(--text); }
+    .badge-sun { background: rgba(255,183,3,0.2); color: #ffb703; }
+    .badge-night { background: rgba(157,78,221,0.25); color: #c77dff; border: 1px solid rgba(157,78,221,0.4); }
+    .species-desc { font-size: 0.8rem; color: var(--text-muted); line-height: 1.3; }
+    
+    .delete-species-btn { background: rgba(217, 4, 41, 0.2); border: 1px solid var(--poor); color: var(--poor); padding: 3px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: bold; cursor: pointer; margin-left: 8px; }
+    .delete-species-btn:active { background: var(--poor); color: #fff; }
 
-        .tag {
-            background-color: rgba(51, 65, 85, 0.6);
-            color: var(--text-muted);
-            padding: 4px 8px;
-            border-radius: 6px;
-            font-size: 0.75rem;
-        }
+    .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 100; padding: 15px; align-items: center; justify-content: center; overflow-y: auto; }
+    .modal-content { background: var(--card-bg); border-radius: 12px; padding: 18px; width: 100%; max-width: 460px; border: 1px solid var(--accent); max-height: 90vh; overflow-y: auto; }
+    .modal-title { font-weight: bold; margin-bottom: 12px; font-size: 1.1rem; color: var(--accent); }
+    .form-group { margin-bottom: 10px; }
+    .form-group label { display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px; }
+    
+    .logs-list { max-height: 180px; overflow-y: auto; margin-bottom: 12px; }
+    .log-item { background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; margin-bottom: 8px; font-size: 0.8rem; display: flex; justify-content: space-between; align-items: center; }
+    .search-result { background: rgba(255,255,255,0.05); padding: 8px; border-radius: 6px; margin-top: 4px; cursor: pointer; font-size: 0.85rem; }
+    .search-result:hover { background: rgba(0,180,216,0.2); }
 
-        .description {
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            line-height: 1.4;
-            margin-bottom: 16px;
-        }
+    .map-wrapper { position: relative; margin: 10px 0; }
+    #mapContainer { height: 260px; border-radius: 8px; border: 1px solid var(--accent); z-index: 1; transition: all 0.3s ease; }
+    .map-fullscreen { position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important; z-index: 9999 !important; border-radius: 0 !important; border: none !important; }
+    .fullscreen-btn { position: absolute; top: 10px; right: 10px; z-index: 1000; background: rgba(13,27,42,0.85); color: var(--accent); border: 1px solid var(--accent); padding: 6px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; cursor: pointer; }
+    .map-header-bar { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 50px; background: rgba(13,27,42,0.95); border-bottom: 1px solid var(--accent); z-index: 1001; align-items: center; justify-content: space-between; padding: 0 15px; }
+    .map-fullscreen .map-header-bar { display: flex; }
+    .map-fullscreen .fullscreen-btn { display: none; }
 
-        .btn-container {
-            display: flex;
-            gap: 10px;
-        }
-
-        .btn {
-            flex: 1;
-            padding: 10px 16px;
-            border-radius: 10px;
-            font-weight: 600;
-            font-size: 0.9rem;
-            border: none;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            transition: background-color 0.2s;
-        }
-
-        .btn-primary {
-            background-color: var(--accent-color);
-            color: #fff;
-        }
-
-        .btn-primary:hover {
-            background-color: var(--accent-hover);
-        }
-
-        .btn-secondary {
-            background-color: #334155;
-            color: var(--text-main);
-        }
-
-        .btn-secondary:hover {
-            background-color: #475569;
-        }
-
-        /* Modal Styles */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.7);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 16px;
-            box-sizing: border-box;
-            z-index: 1000;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.2s ease;
-        }
-
-        .modal-overlay.active {
-            opacity: 1;
-            pointer-events: auto;
-        }
-
-        .modal {
-            background-color: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            width: 100%;
-            max-width: 420px;
-            padding: 20px;
-            box-sizing: border-box;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
-        }
-
-        .modal-title {
-            font-size: 1.2rem;
-            font-weight: 700;
-            margin: 0 0 16px 0;
-            color: var(--accent-color);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .form-group {
-            margin-bottom: 14px;
-        }
-
-        .form-label {
-            display: block;
-            font-size: 0.8rem;
-            font-weight: 600;
-            color: var(--text-muted);
-            margin-bottom: 6px;
-        }
-
-        .form-control {
-            width: 100%;
-            padding: 10px 12px;
-            background-color: var(--bg-color);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            color: var(--text-main);
-            font-size: 0.9rem;
-            box-sizing: border-box;
-        }
-
-        .form-control:focus {
-            outline: none;
-            border-color: var(--accent-color);
-        }
-
-        .form-row {
-            display: flex;
-            gap: 10px;
-        }
-
-        .form-row .form-group {
-            flex: 1;
-        }
-
-        .modal-buttons {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-        }
-
-        .hidden {
-            display: none !important;
-        }
-    </style>
+    .info-section { margin-bottom: 14px; }
+    .info-section h4 { color: var(--accent); font-size: 0.9rem; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+    .info-section p { font-size: 0.8rem; color: var(--text-muted); line-height: 1.4; }
+  </style>
 </head>
 <body>
 
-    <div class="container">
-        <!-- Species Card Example -->
-        <div class="card">
+  <!-- Prominent Install Banner (Always visible with direct instructions fallback) -->
+  <div id="installBanner" class="install-banner-container" style="display: block;">
+    <button class="install-banner-btn" onclick="installApp()">
+      <span>📲</span> Install App / Add to Home Screen
+    </button>
+  </div>
+
+  <!-- Header -->
+  <div class="header-container">
+    <div class="header-title">🎣 EJ'S FISHING FORECAST</div>
+    <div class="header-buttons">
+      <div class="header-icon-btn" onclick="openModal('infoModal')" title="About this App">ℹ️</div>
+    </div>
+    <div class="wave-bg"></div>
+  </div>
+
+  <div class="app-container">
+    <div id="statusBanner" class="status-banner">⚠️ Offline Mode — Displaying cached forecast</div>
+
+    <!-- Location Controls -->
+    <div class="control-card">
+      <div class="row">
+        <select id="locationSelect"></select>
+        <button id="gpsBtn" class="btn-icon" title="Use Live GPS">🎯</button>
+        <button onclick="openModal('locModal')" class="btn-sm" style="background: var(--accent); color: #000;">+ Spot</button>
+      </div>
+
+      <div class="row">
+        <input type="date" id="datePicker">
+        <button id="refreshBtn" class="btn-icon" title="Refresh">🔄</button>
+      </div>
+
+      <!-- 8-Hour Hourly Projection -->
+      <div style="margin-top: 12px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px;">
+        <div class="hourly-title">
+          <span>8-Hour Wind & Comfort Projection</span>
+          <span id="windyLink" style="text-transform: none; text-decoration: underline; cursor: pointer; color: var(--accent);" onclick="openWindy()">🌐 External Map</span>
+        </div>
+        <div id="hourlyContainer" class="hourly-scroll">Loading projection...</div>
+      </div>
+
+      <!-- Environment Toggle -->
+      <div class="mode-toggle">
+        <div id="surfModeBtn" class="mode-btn active" onclick="setMode('surf')">🌊 Surf / Beach</div>
+        <div id="harbourModeBtn" class="mode-btn" onclick="setMode('harbour')">⚓ Harbour / Estuary</div>
+      </div>
+
+      <!-- Live Summary -->
+      <div class="metrics-grid">
+        <div class="metric-box">
+          <div class="metric-label">Tide</div>
+          <div id="m-tide" class="metric-val">--</div>
+        </div>
+        <div class="metric-box">
+          <div id="m-surf-label" class="metric-label">Swell</div>
+          <div id="m-surf" class="metric-val">--</div>
+        </div>
+        <div class="metric-box">
+          <div class="metric-label">Avg Wind / Press</div>
+          <div id="m-wind" class="metric-val">--</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Species Targets -->
+    <div class="section-title">
+      <span>TARGET SPECIES SCORES</span>
+      <button onclick="openModal('customModal')" style="padding: 4px 8px; font-size: 0.75rem; flex: none;">+ Add Custom</button>
+    </div>
+    
+    <div id="speciesContainer">Loading multi-model forecasts...</div>
+
+    <!-- Actions -->
+    <div class="row" style="margin-top: 15px;">
+      <button onclick="openModal('catchModal')">📷 + Log Catch</button>
+      <button onclick="openModal('viewLogsModal')" style="background: var(--card-bg); border: 1px solid var(--accent); color: var(--text);">📊 View Logbook</button>
+    </div>
+  </div>
+
+  <!-- Modal: About App -->
+  <div id="infoModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-title">ℹ️ About EJ's Fishing Forecast</div>
+      
+      <div class="info-section">
+        <h4>📡 Multi-Model Forecast Background Checks</h4>
+        <p>This app runs real-time automated background checks against global atmospheric and marine forecast models (via Open-Meteo). It cross-references water temperatures, surface pressures, wind directions, swell heights, and daily solar/lunar phases.</p>
+      </div>
+
+      <div class="info-section">
+        <h4>🌙 Night-Time Fishing Engine & Optimal Hours</h4>
+        <p>Certain target predators feed heavily under dark cover. The engine analyzes nocturnal conditions—including pressure drops, wind comfort, and tide alignment after sunset—up front to display dedicated <strong>🌙 Night Peak</strong> feeding windows and bonus confidence ratings.</p>
+      </div>
+
+      <div class="info-section">
+        <h4>🎯 Dynamic Species Scoring Engine</h4>
+        <p>Each target fish has ideal environmental thresholds. The app calculates a score out of 100 by matching current weather checks against preferred species habits.</p>
+      </div>
+
+      <div class="info-section">
+        <h4>🔍 Custom Species Fine-Tuning & Auto-Fill</h4>
+        <p>When adding a custom target fish, you can specify tidal stages, light & night preferences, maximum swell limits, wind caps, and barometric pressure trends. Use <strong>"🔍 Auto-Fill Profile"</strong> to instantly fetch scientific baseline profiles!</p>
+      </div>
+
+      <div class="info-section">
+        <h4>🗺️ Google Maps Satellite Hybrid Pinpoint Picker</h4>
+        <p>Powered by high-resolution Google Satellite tiles and embedded road & town name labels to pinpoint exact rock ledges, gullies, or estuary banks.</p>
+      </div>
+
+      <div class="info-section">
+        <h4>🧠 Smart Logbook Learning</h4>
+        <p>Log your catches with photos and details. The scoring engine automatically gives bonus confidence points (+10) to target species you've successfully caught in past trips!</p>
+      </div>
+
+      <button onclick="closeModal('infoModal')" style="width: 100%; margin-top: 10px; background: var(--accent); color: #000;">Got It!</button>
+    </div>
+  </div>
+
+  <!-- Modal: Add Custom Species -->
+  <div id="customModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-title">➕ Add & Fine-Tune Target Species</div>
+      
+      <div class="form-group" style="background: rgba(0, 180, 216, 0.1); padding: 10px; border-radius: 8px; border: 1px solid var(--accent);">
+        <label style="color: var(--accent); font-weight: bold;">🔍 QUICK LOOKUP & AUTO-FILL</label>
+        <div style="display:flex; gap:6px; margin-top:4px;">
+          <input type="text" id="custName" placeholder="e.g. Bronze Bream, Kob, Rockcod, Blacktail">
+          <button type="button" onclick="quickSearchSpecies()" style="flex:none; padding:8px 10px; font-size:0.75rem; background: var(--accent); color:#000;">🔍 Auto-Fill Profile</button>
+        </div>
+        <small id="lookupStatus" style="color: var(--text-muted); font-size: 0.7rem; display: block; margin-top: 4px;">Type fish name and tap Auto-Fill to fetch ideal temp, tides, daylight or night preferences.</small>
+      </div>
+
+      <div class="form-group" style="margin-top:12px;">
+        <label>Primary Environment Habitat</label>
+        <select id="custEnv">
+          <option value="surf">🌊 Surf / Beach / Rock Ledges</option>
+          <option value="harbour">⚓ Harbour / Estuary / Lagoon</option>
+          <option value="both">🌐 Both / Flexible</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Ideal Water Temp Range (°C)</label>
+        <div style="display:flex; gap:8px;">
+          <input type="number" id="custMinTemp" value="18" placeholder="Min Temp">
+          <input type="number" id="custMaxTemp" value="24" placeholder="Max Temp">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Preferred Tide Stage</label>
+        <select id="custTidePref">
+          <option value="rising">📈 Rising / Incoming Tide (Pushing Water)</option>
+          <option value="high">🌊 High Tide / Top of Tide</option>
+          <option value="ebb">📉 Ebb / Outgoing Tide</option>
+          <option value="low">🏖️ Low Tide / Gullies</option>
+          <option value="any">🔄 Any Tide State</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Activity Light / Night Fishing Preference</label>
+        <select id="custTimePref">
+          <option value="night">🌙 Night / Dark Hours (Optimal Nocturnal Feeding)</option>
+          <option value="dusk">🌅 Dawn & Dusk (Low Light Peaks)</option>
+          <option value="day">☀️ Daylight Active</option>
+          <option value="any">⏰ All Day & Night Active</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Max Swell / Wave Limit (Meters)</label>
+        <input type="number" step="0.1" id="custMaxSwell" value="2.2" placeholder="e.g. 2.0m max for calm feeders">
+      </div>
+
+      <div class="form-group">
+        <label>Max Comfortable Wind Speed (km/h)</label>
+        <input type="number" id="custMaxWind" value="25" placeholder="e.g. 20 km/h">
+      </div>
+
+      <div class="form-group">
+        <label>Barometric Pressure Preference</label>
+        <select id="custBaroPref">
+          <option value="falling">📉 Falling Pressure (Pre-Front Feeding)</option>
+          <option value="steady">➡️ Steady / High Pressure</option>
+          <option value="any">🔄 Any Pressure State</option>
+        </select>
+      </div>
+
+      <div class="row" style="margin-top: 15px;">
+        <button onclick="saveCustomSpecies()" style="background:var(--accent); color:#000;">💾 Save Species Profile</button>
+        <button onclick="closeModal('customModal')" style="background: transparent; color: var(--text);">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Add Location -->
+  <div id="locModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-title">📍 Add & Manage Custom Spots</div>
+      
+      <div class="form-group">
+        <label>🌍 OPTION 1: Tap Anywhere on Google Hybrid Map</label>
+        <div class="map-wrapper">
+          <div id="mapContainer">
+            <div class="map-header-bar">
+              <span style="font-weight:bold; color:var(--accent); font-size:0.9rem;">📍 Google Hybrid Spot Picker</span>
+              <button type="button" onclick="toggleMapFullscreen()" style="background:var(--accent); color:#000; padding:6px 12px; font-size:0.75rem; border-radius:6px; font-weight:bold;">✖ Collapse Map</button>
+            </div>
+          </div>
+          <button type="button" class="fullscreen-btn" id="fsToggleBtn" onclick="toggleMapFullscreen()">⛶ Fullscreen</button>
+        </div>
+        <small style="color:var(--accent); font-size:0.7rem;">Tap anywhere on the Google map to drop a pin and read exact town/road names.</small>
+      </div>
+
+      <div style="text-align:center; font-size:0.75rem; color:var(--text-muted); margin: 8px 0;">— OR —</div>
+
+      <div class="form-group">
+        <label>🔍 OPTION 2: Type Location Name</label>
+        <div style="display:flex; gap:6px;">
+          <input type="text" id="locSearchInput" placeholder="e.g. Ballito, Tugela Mouth">
+          <button onclick="searchPlace()" style="flex:none; padding:8px 12px;">Search</button>
+        </div>
+        <div id="searchResults"></div>
+      </div>
+
+      <div class="form-group" style="margin-top:10px;">
+        <label>Spot Details to Save</label>
+        <input type="text" id="customLocName" placeholder="Spot Name (e.g. Secret Ledge)">
+        <div style="display:flex; gap:8px; margin-top:6px;">
+          <input type="number" step="any" id="customLat" placeholder="Latitude">
+          <input type="number" step="any" id="customLon" placeholder="Longitude">
+        </div>
+      </div>
+      <button onclick="addManualLocation()" style="width:100%; margin-top:6px; background:var(--accent); color:#000;">💾 Save This Custom Spot</button>
+
+      <div style="border-top: 1px solid rgba(255,255,255,0.1); margin: 15px 0 10px;"></div>
+      <div class="modal-title" style="font-size: 0.9rem;">🗑️ Delete Saved Spots</div>
+      <div id="customLocList" class="logs-list">No custom spots added.</div>
+
+      <button onclick="closeModal('locModal')" style="width: 100%; background: transparent; color: var(--text); border:1px solid var(--accent); margin-top:10px;">Close</button>
+    </div>
+  </div>
+
+  <!-- Modal: Log Catch -->
+  <div id="catchModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-title">📝 Log Your Catch</div>
+      <div class="form-group">
+        <label>Species</label>
+        <select id="logSpeciesSelect"></select>
+      </div>
+      <div class="form-group">
+        <label>Length (cm) / Weight (kg)</label>
+        <div style="display:flex; gap:8px;">
+          <input type="number" id="logLength" placeholder="e.g. 52 cm">
+          <input type="number" id="logWeight" placeholder="e.g. 1.8 kg">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Attach Photo</label>
+        <input type="file" id="logPhoto" accept="image/*" capture="environment">
+      </div>
+      <div class="row" style="margin-top: 15px;">
+        <button onclick="saveCatchLog()">💾 Save Catch</button>
+        <button onclick="closeModal('catchModal')" style="background: transparent; color: var(--text);">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: View Logs -->
+  <div id="viewLogsModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-title">📊 Catch History</div>
+      <div id="logsContainer" class="logs-list">No catches logged yet.</div>
+      <button onclick="closeModal('viewLogsModal')" style="width: 100%;">Close</button>
+    </div>
+  </div>
+
+  <script>
+    let currentMode = 'surf';
+    let weatherCache = {};
+    let rawHourly = [];
+    let map, mapMarker;
+    let isMapFullscreen = false;
+    let deferredPrompt = null;
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      document.getElementById('installBanner').style.display = 'block';
+    });
+
+    async function installApp() {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          document.getElementById('installBanner').style.display = 'none';
+        }
+        deferredPrompt = null;
+      } else {
+        alert('To add this app to your home screen:\n\n• On Android (Chrome): Tap the browser menu (3 dots top-right) and select "Add to Home screen" or "Install app".\n• On iPhone (Safari): Tap the Share button at the bottom and select "Add to Home Screen".');
+      }
+    }
+
+    const speciesKnowledgeBase = {
+      'kob': { env: 'both', minTemp: 18, maxTemp: 23, tide: 'high', time: 'night', maxSwell: 2.0, maxWind: 25, baro: 'falling' },
+      'cob': { env: 'both', minTemp: 18, maxTemp: 23, tide: 'high', time: 'night', maxSwell: 2.0, maxWind: 25, baro: 'falling' },
+      'rockcod': { env: 'surf', minTemp: 19, maxTemp: 25, tide: 'low', time: 'night', maxSwell: 1.8, maxWind: 20, baro: 'steady' },
+      'speckled snapper': { env: 'harbour', minTemp: 20, maxTemp: 26, tide: 'high', time: 'night', maxSwell: 1.5, maxWind: 20, baro: 'falling' },
+      'blacktail': { env: 'surf', minTemp: 17, maxTemp: 23, tide: 'rising', time: 'dusk', maxSwell: 2.5, maxWind: 28, baro: 'steady' },
+      'dassie': { env: 'surf', minTemp: 17, maxTemp: 23, tide: 'rising', time: 'dusk', maxSwell: 2.5, maxWind: 28, baro: 'steady' },
+      'bronze bream': { env: 'surf', minTemp: 16, maxTemp: 21, tide: 'rising', time: 'day', maxSwell: 2.0, maxWind: 22, baro: 'steady' },
+      'kingfish': { env: 'both', minTemp: 21, maxTemp: 27, tide: 'rising', time: 'dusk', maxSwell: 1.8, maxWind: 20, baro: 'falling' },
+      'gt': { env: 'surf', minTemp: 22, maxTemp: 28, tide: 'rising', time: 'dusk', maxSwell: 2.0, maxWind: 22, baro: 'falling' },
+      'stumpnose': { env: 'surf', minTemp: 18, maxTemp: 24, tide: 'rising', time: 'night', maxSwell: 2.2, maxWind: 25, baro: 'steady' },
+      'bonefish': { env: 'harbour', minTemp: 22, maxTemp: 27, tide: 'rising', time: 'day', maxSwell: 1.2, maxWind: 18, baro: 'steady' },
+      'pompano': { env: 'surf', minTemp: 20, maxTemp: 25, tide: 'high', time: 'day', maxSwell: 1.8, maxWind: 20, baro: 'steady' }
+    };
+
+    const defaultLocations = [
+      { name: "Richards Bay (Surf)", val: "-28.79,32.08" },
+      { name: "Richards Bay (Harbour)", val: "-28.78,32.04" },
+      { name: "St Lucia Estuary Mouth", val: "-28.38,32.42" },
+      { name: "Cape Vidal", val: "-28.13,32.55" },
+      { name: "Mapelane", val: "-28.41,32.42" }
+    ];
+
+    let defaultSpecies = [
+      { id: 'kob', name: 'Dusky Kob (Cob)', env: 'both', minTemp: 18, maxTemp: 23, tidePref: 'high', timePref: 'night', maxSwell: 2.0, maxWind: 25, baroPref: 'falling' },
+      { id: 'flathead', name: 'Bartail Flathead', env: 'harbour', minTemp: 20, maxTemp: 26, tidePref: 'ebb', timePref: 'day', maxSwell: 1.5, maxWind: 20, baroPref: 'steady' },
+      { id: 'grunter', name: 'Spotted Grunter', env: 'harbour', minTemp: 20, maxTemp: 26, tidePref: 'rising', timePref: 'dusk', maxSwell: 1.2, maxWind: 20, baroPref: 'falling' },
+      { id: 'shad', name: 'Shad (Elf)', env: 'surf', minTemp: 19, maxTemp: 24, tidePref: 'high', timePref: 'dusk', maxSwell: 2.5, maxWind: 30, baroPref: 'steady' },
+      { id: 'garrick', name: 'Garrick (Leervis)', env: 'surf', minTemp: 19, maxTemp: 23, tidePref: 'rising', timePref: 'day', maxSwell: 2.2, maxWind: 22, baroPref: 'falling' },
+      { id: 'steenbras', name: 'White Steenbras', env: 'surf', minTemp: 16, maxTemp: 21, tidePref: 'rising', timePref: 'day', maxSwell: 2.0, maxWind: 22, baroPref: 'steady' }
+    ];
+
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('datePicker').valueAsDate = new Date();
+      renderLocationDropdown();
+      loadSpeciesOptions();
+      fetchForecast();
+
+      document.getElementById('locationSelect').addEventListener('change', fetchForecast);
+      document.getElementById('datePicker').addEventListener('change', fetchForecast);
+      document.getElementById('refreshBtn').addEventListener('click', fetchForecast);
+      document.getElementById('gpsBtn').addEventListener('click', useGPS);
+    });
+
+    function quickSearchSpecies() {
+      const query = document.getElementById('custName').value.toLowerCase().trim();
+      const status = document.getElementById('lookupStatus');
+      
+      if (!query) {
+        status.innerText = "⚠️ Please type a species name first.";
+        status.style.color = "#ffb703";
+        return;
+      }
+
+      status.innerText = "🔍 Checking species database...";
+      status.style.color = "#00b4d8";
+
+      let match = null;
+      for (let key in speciesKnowledgeBase) {
+        if (query.includes(key) || key.includes(query)) {
+          match = speciesKnowledgeBase[key];
+          break;
+        }
+      }
+
+      if (match) {
+        document.getElementById('custEnv').value = match.env;
+        document.getElementById('custMinTemp').value = match.minTemp;
+        document.getElementById('custMaxTemp').value = match.maxTemp;
+        document.getElementById('custTidePref').value = match.tide;
+        document.getElementById('custTimePref').value = match.time;
+        document.getElementById('custMaxSwell').value = match.maxSwell;
+        document.getElementById('custMaxWind').value = match.maxWind;
+        document.getElementById('custBaroPref').value = match.baro;
+
+        status.innerText = `✅ Auto-filled profile options for "${query}" (Time: ${match.time.toUpperCase()})!`;
+        status.style.color = "#38b000";
+      } else {
+        document.getElementById('custEnv').value = 'surf';
+        document.getElementById('custMinTemp').value = 18;
+        document.getElementById('custMaxTemp').value = 24;
+        document.getElementById('custTidePref').value = 'rising';
+        document.getElementById('custTimePref').value = 'dusk';
+        document.getElementById('custMaxSwell').value = 2.0;
+        document.getElementById('custMaxWind').value = 25;
+        document.getElementById('custBaroPref').value = 'steady';
+
+        status.innerText = `ℹ️ Created a balanced baseline profile for "${query}". Customize details below.`;
+        status.style.color = "#ffb703";
+      }
+    }
+
+    function initInteractiveMap() {
+      if (map) return;
+      map = L.map('mapContainer').setView([-28.78, 32.05], 11);
+      
+      const googleHybridLayer = L.tileLayer('https://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', {
+        maxZoom: 20,
+        subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+        attribution: '© Google Maps'
+      });
+
+      googleHybridLayer.addTo(map);
+
+      map.on('click', async function(e) {
+        const lat = e.latlng.lat.toFixed(4);
+        const lon = e.latlng.lng.toFixed(4);
+        if (mapMarker) { mapMarker.setLatLng(e.latlng); } else { mapMarker = L.marker(e.latlng).addTo(map); }
+        document.getElementById('customLat').value = lat;
+        document.getElementById('customLon').value = lon;
+        
+        try {
+          const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${lat},${lon}&count=1`);
+          const data = await res.json();
+          if (data.results && data.results[0]) {
+            document.getElementById('customLocName').value = data.results[0].name;
+          } else {
+            document.getElementById('customLocName').value = `Picked Spot (${lat}, ${lon})`;
+          }
+        } catch(err) {
+          document.getElementById('customLocName').value = `Picked Spot (${lat}, ${lon})`;
+        }
+      });
+    }
+
+    function toggleMapFullscreen() {
+      const mapEl = document.getElementById('mapContainer');
+      isMapFullscreen = !isMapFullscreen;
+      
+      if (isMapFullscreen) {
+        mapEl.classList.add('map-fullscreen');
+      } else {
+        mapEl.classList.remove('map-fullscreen');
+      }
+      setTimeout(() => { if (map) map.invalidateSize(); }, 200);
+    }
+
+    function renderLocationDropdown() {
+      const select = document.getElementById('locationSelect');
+      const customLocs = JSON.parse(localStorage.getItem('customLocations') || '[]');
+      let html = defaultLocations.map(l => `<option value="${l.val}">${l.name}</option>`).join('');
+      if (customLocs.length > 0) {
+        html += `<optgroup label="📍 Custom Saved Spots">`;
+        html += customLocs.map(l => `<option value="${l.lat},${l.lon}">📍 ${l.name}</option>`).join('');
+        html += `</optgroup>`;
+      }
+      select.innerHTML = html;
+      renderCustomLocList();
+    }
+
+    async function searchPlace() {
+      const query = document.getElementById('locSearchInput').value.trim();
+      const resContainer = document.getElementById('searchResults');
+      if (!query) return;
+      resContainer.innerHTML = 'Searching...';
+
+      try {
+        const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=4`);
+        const data = await res.json();
+        if (!data.results || data.results.length === 0) {
+          resContainer.innerHTML = '<div style="font-size:0.8rem; padding:5px;">No matching spots found. Tap map above instead.</div>';
+          return;
+        }
+
+        resContainer.innerHTML = data.results.map(r => `
+          <div class="search-result" onclick="saveSearchedLocation('${r.name.replace(/'/g,"")}', ${r.latitude}, ${r.longitude})">
+            📌 <strong>${r.name}</strong> (${r.country || ''}) <br>
+            <small style="color:var(--text-muted);">Lat: ${r.latitude.toFixed(2)}, Lon: ${r.longitude.toFixed(2)}</small>
+          </div>
+        `).join('');
+      } catch(e) {
+        resContainer.innerHTML = '<div style="font-size:0.8rem; color:red;">Search error. Tap map above instead.</div>';
+      }
+    }
+
+    function saveSearchedLocation(name, lat, lon) {
+      saveCustomLoc(name, lat, lon);
+      document.getElementById('searchResults').innerHTML = '';
+      document.getElementById('locSearchInput').value = '';
+    }
+
+    function addManualLocation() {
+      const name = document.getElementById('customLocName').value.trim();
+      const lat = parseFloat(document.getElementById('customLat').value);
+      const lon = parseFloat(document.getElementById('customLon').value);
+
+      if (!name || isNaN(lat) || isNaN(lon)) {
+        alert('Please tap the map or search to select Latitude and Longitude.');
+        return;
+      }
+      saveCustomLoc(name, lat, lon);
+      document.getElementById('customLocName').value = '';
+      document.getElementById('customLat').value = '';
+      document.getElementById('customLon').value = '';
+    }
+
+    function saveCustomLoc(name, lat, lon) {
+      const customLocs = JSON.parse(localStorage.getItem('customLocations') || '[]');
+      customLocs.push({ name, lat, lon });
+      localStorage.setItem('customLocations', JSON.stringify(customLocs));
+      renderLocationDropdown();
+      document.getElementById('locationSelect').value = `${lat},${lon}`;
+      closeModal('locModal');
+      fetchForecast();
+    }
+
+    function deleteCustomLoc(idx) {
+      const customLocs = JSON.parse(localStorage.getItem('customLocations') || '[]');
+      customLocs.splice(idx, 1);
+      localStorage.setItem('customLocations', JSON.stringify(customLocs));
+      renderLocationDropdown();
+    }
+
+    function renderCustomLocList() {
+      const customLocs = JSON.parse(localStorage.getItem('customLocations') || '[]');
+      const container = document.getElementById('customLocList');
+      if (customLocs.length === 0) {
+        container.innerHTML = `<span style="font-size:0.8rem; color:var(--text-muted);">No custom spots saved yet.</span>`;
+        return;
+      }
+      container.innerHTML = customLocs.map((l, i) => `
+        <div class="log-item">
+          <div>
+            <strong>📍 ${l.name}</strong><br>
+            <small style="color:var(--text-muted);">${l.lat}, ${l.lon}</small>
+          </div>
+          <button onclick="deleteCustomLoc(${i})" style="background:var(--poor); color:#fff; border:none; padding:4px 8px; font-size:0.75rem;">Delete</button>
+        </div>
+      `).join('');
+    }
+
+    function setMode(mode) {
+      currentMode = mode;
+      document.getElementById('surfModeBtn').classList.toggle('active', mode === 'surf');
+      document.getElementById('harbourModeBtn').classList.toggle('active', mode === 'harbour');
+      document.getElementById('m-surf-label').innerText = mode === 'surf' ? 'Swell' : 'Sea Temp';
+      calculateScores();
+    }
+
+    async function fetchForecast() {
+      const loc = document.getElementById('locationSelect').value.split(',');
+      const date = document.getElementById('datePicker').value;
+      const lat = loc[0], lon = loc[1];
+
+      document.getElementById('speciesContainer').innerHTML = "Fetching multi-model forecasts...";
+      document.getElementById('statusBanner').style.display = 'none';
+
+      const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=sunrise,sunset&hourly=temperature_2m,surface_pressure,wind_speed_10m,wind_direction_10m&wind_speed_unit=kmh&start_date=${date}&end_date=${date}&timezone=auto`;
+      const marineUrl = `https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lon}&hourly=wave_height,wave_period,sea_surface_temperature&start_date=${date}&end_date=${date}&timezone=auto`;
+
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 6000);
+
+        const [wRes, mRes] = await Promise.all([
+          fetch(weatherUrl, { signal: controller.signal }),
+          fetch(marineUrl, { signal: controller.signal }).catch(() => null)
+        ]);
+        clearTimeout(timeout);
+
+        if (!wRes.ok) throw new Error('Weather fetch failed');
+        const wData = await wRes.json();
+        
+        let mData = {};
+        if (mRes && mRes.ok) {
+          mData = await mRes.json();
+        }
+
+        rawHourly = wData.hourly.time.map((t, idx) => ({
+          time: t.split('T')[1].substring(0,5),
+          temp: Math.round(wData.hourly.temperature_2m[idx] || 20),
+          wind: Math.round(wData.hourly.wind_speed_10m[idx] || 10),
+          dir: wData.hourly.wind_direction_10m[idx] || 0
+        }));
+
+        const waveHeights = mData.hourly && mData.hourly.wave_height ? mData.hourly.wave_height : [0.5];
+        const wavePeriods = mData.hourly && mData.hourly.wave_period ? mData.hourly.wave_period : [9];
+        const seaTemps = mData.hourly && mData.hourly.sea_surface_temperature ? mData.hourly.sea_surface_temperature : [21];
+
+        weatherCache = {
+          sunrise: wData.daily.sunrise[0].split('T')[1],
+          sunset: wData.daily.sunset[0].split('T')[1],
+          temp: Math.round(wData.hourly.temperature_2m.reduce((a,b)=>a+b,0)/24),
+          pressure: Math.round(wData.hourly.surface_pressure.reduce((a,b)=>a+b,0)/24),
+          wind: Math.round(wData.hourly.wind_speed_10m.reduce((a,b)=>a+b,0)/24),
+          waveHeight: (waveHeights.reduce((a,b)=>a+(b||0),0)/waveHeights.length).toFixed(1),
+          wavePeriod: Math.round(wavePeriods.reduce((a,b)=>a+(b||0),0)/wavePeriods.length),
+          seaTemp: (seaTemps.reduce((a,b)=>a+(b||0),0)/seaTemps.length).toFixed(1)
+        };
+
+        localStorage.setItem('cachedForecast', JSON.stringify(weatherCache));
+        updateDashboard();
+        renderHourlyProjection();
+        calculateScores();
+
+      } catch (err) {
+        document.getElementById('statusBanner').style.display = 'block';
+        const cached = localStorage.getItem('cachedForecast');
+        if (cached) {
+          weatherCache = JSON.parse(cached);
+          updateDashboard();
+          calculateScores();
+        } else {
+          weatherCache = { sunrise: "06:00", sunset: "18:00", temp: 22, pressure: 1016, wind: 15, waveHeight: "1.2", wavePeriod: 10, seaTemp: "21.5" };
+          updateDashboard();
+          calculateScores();
+        }
+      }
+    }
+
+    function renderHourlyProjection() {
+      if (!rawHourly || rawHourly.length === 0) return;
+
+      const selectedDate = document.getElementById('datePicker').value;
+      const today = new Date().toISOString().split('T')[0];
+      
+      let startHour;
+      if (selectedDate === today) {
+        startHour = new Date().getHours();
+      } else {
+        const sunriseHour = parseInt(weatherCache.sunrise.split(':')[0]);
+        startHour = Math.max(0, sunriseHour - 1);
+      }
+
+      let startIdx = rawHourly.findIndex(h => parseInt(h.time.split(':')[0]) >= startHour);
+      if (startIdx === -1) startIdx = 0;
+
+      const next8Hours = rawHourly.slice(startIdx, startIdx + 8);
+
+      const html = next8Hours.map(h => {
+        let comfort = '😊 Pleasant';
+        let comfortClass = 'comfort-good';
+
+        if (h.wind > 30 || h.temp < 15) {
+          comfort = '🥶 Unpleasant'; comfortClass = 'comfort-poor';
+        } else if (h.wind > 20) {
+          comfort = '💨 Breezy'; comfortClass = 'comfort-mod';
+        }
+
+        return `
+          <div class="hourly-card">
+            <div class="hourly-time">${h.time}</div>
+            <div class="hourly-temp">${h.temp}°C</div>
+            <div class="hourly-wind">
+              <span class="wind-arrow" style="transform: rotate(${h.dir}deg)">⬆</span>
+              ${h.wind} km/h
+            </div>
+            <span class="comfort-badge ${comfortClass}">${comfort}</span>
+          </div>
+        `;
+      }).join('');
+
+      document.getElementById('hourlyContainer').innerHTML = html;
+    }
+
+    function openWindy() {
+      const loc = document.getElementById('locationSelect').value.split(',');
+      window.open(`https://www.windy.com/${loc[0]}/${loc[1]}?wind,${loc[0]},${loc[1]},11`, '_blank');
+    }
+
+    function updateDashboard() {
+      document.getElementById('m-tide').innerText = "Rising";
+      document.getElementById('m-surf').innerText = currentMode === 'surf' ? `${weatherCache.waveHeight}m @ ${weatherCache.wavePeriod}s` : `${weatherCache.seaTemp}°C Water`;
+      document.getElementById('m-wind').innerText = `${weatherCache.wind} km/h / ${weatherCache.pressure} hPa`;
+    }
+
+    function calculateScores() {
+      const customSpecs = JSON.parse(localStorage.getItem('customSpecies') || '[]');
+      const allSpecies = [...defaultSpecies, ...customSpecs];
+      const logs = JSON.parse(localStorage.getItem('catchLogs') || '[]');
+
+      let html = '';
+
+      allSpecies.forEach((sp, idx) => {
+        if (sp.env !== 'both' && sp.env !== currentMode) return;
+
+        let score = 55;
+        let bonuses = [];
+        let bestTimeWindow = '⏰ BEST TIME: 05:15 AM - 07:30 AM';
+        let isNightWindow = false;
+
+        if (weatherCache.temp >= sp.minTemp && weatherCache.temp <= sp.maxTemp) {
+          score += 15; bonuses.push('🌡️ Ideal Temp');
+        }
+
+        if (sp.timePref === 'night') {
+          score += 18; 
+          bonuses.push('🌙 Optimal Night Feeding');
+          bestTimeWindow = '🌙 BEST TIME: 07:00 PM - 11:30 PM (Night Peak)';
+          isNightWindow = true;
+        } else if (sp.timePref === 'dusk') {
+          score += 15; 
+          bonuses.push('🌅 Dawn/Dusk Peak');
+          bestTimeWindow = '🌅 BEST TIME: 05:15 AM - 07:30 AM / 05:45 PM - 07:15 PM';
+        } else if (sp.timePref === 'day') {
+          score += 10; 
+          bonuses.push('☀️ Daylight Active');
+          bestTimeWindow = '☀️ BEST TIME: 08:30 AM - 04:00 PM';
+        } else {
+          bestTimeWindow = '🔄 ALL DAY / NIGHT ACTIVE';
+        }
+
+        if (parseFloat(weatherCache.waveHeight) <= (sp.maxSwell || 2.5)) {
+          score += 10; bonuses.push('🌊 Swell Suitable');
+        }
+
+        if (weatherCache.wind <= (sp.maxWind || 30)) {
+          score += 5; bonuses.push('💨 Wind Suitable');
+        }
+
+        const speciesLogs = logs.filter(l => l.species === sp.name);
+        if (speciesLogs.length > 0) {
+          score += 10; bonuses.push(`🧠 Learned History (+10)`);
+        }
+
+        score = Math.min(score, 98);
+        const scoreClass = score >= 80 ? 'score-good' : score >= 60 ? 'score-mod' : 'score-poor';
+
+        const isCustom = customSpecs.some(cs => cs.id === sp.id || cs.name === sp.name);
+        const deleteButtonHtml = isCustom ? `<button class="delete-species-btn" onclick="deleteCustomSpecies('${sp.name.replace(/'/g, "\\'")}')">🗑️ Delete</button>` : '';
+
+        html += `
+          <div class="species-card">
             <div class="species-header">
-                <h3 class="species-title">Dusky Kob (Cob)</h3>
-                <span class="score-badge">93 / 100</span>
+              <span class="species-name">${sp.name} ${deleteButtonHtml}</span>
+              <span class="species-score ${scoreClass}">${score} / 100</span>
             </div>
-            <div class="best-time">🌙 BEST TIME: 07:00 PM - 11:30 PM (Night Peak)</div>
-            <div class="tags-container">
-                <span class="tag">🌡️ Ideal Temp</span>
-                <span class="tag">🌙 Optimal Night Feeding</span>
-                <span class="tag">💨 Wind Suitable</span>
+            <div class="time-window ${isNightWindow ? 'night-window' : ''}">${bestTimeWindow}</div>
+            <div class="badge-container">
+              ${bonuses.map(b => `<span class="badge ${b.includes('Night')?'badge-night':b.includes('Dawn')?'badge-sun':''}">${b}</span>`).join('')}
             </div>
-            <div class="description">
-                Weather consensus, wave limits, light/night conditions, and tide preferences align with profile thresholds.
-            </div>
-            <div class="btn-container">
-                <button class="btn btn-primary" onclick="openLogModal()">📷 + Log Catch</button>
-                <button class="btn btn-secondary">📊 View Logbook</button>
-            </div>
+            <div class="species-desc">Weather consensus, wave limits, light/night conditions, and tide preferences align with profile thresholds.</div>
+          </div>
+        `;
+      });
+
+      document.getElementById('speciesContainer').innerHTML = html || 'No target species defined for this environment.';
+    }
+
+    function deleteCustomSpecies(speciesName) {
+      if (confirm(`Are you sure you want to delete "${speciesName}" from your target list?`)) {
+        let customSpecs = JSON.parse(localStorage.getItem('customSpecies') || '[]');
+        customSpecs = customSpecs.filter(s => s.name !== speciesName);
+        localStorage.setItem('customSpecies', JSON.stringify(customSpecs));
+        loadSpeciesOptions();
+        calculateScores();
+      }
+    }
+
+    function saveCatchLog() {
+      const species = document.getElementById('logSpeciesSelect').value;
+      const len = document.getElementById('logLength').value;
+      const wt = document.getElementById('logWeight').value;
+      const photoInput = document.getElementById('logPhoto');
+
+      const newLog = { species, len, wt, date: new Date().toLocaleDateString(), img: '' };
+
+      if (photoInput.files && photoInput.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          newLog.img = e.target.result;
+          storeLog(newLog);
+        };
+        reader.readAsDataURL(photoInput.files[0]);
+      } else {
+        storeLog(newLog);
+      }
+    }
+
+    function storeLog(log) {
+      const logs = JSON.parse(localStorage.getItem('catchLogs') || '[]');
+      logs.unshift(log);
+      localStorage.setItem('catchLogs', JSON.stringify(logs));
+      closeModal('catchModal');
+      calculateScores();
+      alert('Catch saved to Logbook!');
+    }
+
+    function loadLogsUI() {
+      const logs = JSON.parse(localStorage.getItem('catchLogs') || '[]');
+      const container = document.getElementById('logsContainer');
+      if (logs.length === 0) { container.innerHTML = "No catches logged yet."; return; }
+
+      container.innerHTML = logs.map(l => `
+        <div class="log-item">
+          ${l.img ? `<img src="${l.img}" class="log-img" style="width:50px;height:50px;object-fit:cover;border-radius:6px;">` : '<div style="width:50px;height:50px;background:#111;border-radius:6px;"></div>'}
+          <div>
+            <strong>${l.species}</strong><br>
+            ${l.len ? l.len + ' cm | ' : ''}${l.wt ? l.wt + ' kg' : ''}<br>
+            <small style="color:var(--text-muted);">${l.date}</small>
+          </div>
         </div>
-    </div>
+      `).join('');
+    }
 
-    <!-- Log Your Catch Modal -->
-    <div class="modal-overlay" id="logModal">
-        <div class="modal">
-            <h3 class="modal-title">📝 Log Your Catch</h3>
-            
-            <form id="catchForm" onsubmit="handleSaveCatch(event)">
-                <div class="form-group">
-                    <label class="form-label">Species</label>
-                    <select class="form-control" id="speciesSelect">
-                        <option value="Dusky Kob (Cob)">Dusky Kob (Cob)</option>
-                        <option value="Shad (Elf)">Shad (Elf)</option>
-                        <option value="White Steenbras">White Steenbras</option>
-                    </select>
-                </div>
+    function openModal(id) {
+      if (id === 'viewLogsModal') loadLogsUI();
+      document.getElementById(id).style.display = 'flex';
 
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label">Length (cm)</label>
-                        <input type="text" class="form-control" placeholder="e.g. 52 cm">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Weight (kg)</label>
-                        <input type="text" class="form-control" placeholder="e.g. 1.8 kg">
-                    </div>
-                </div>
+      if (id === 'locModal') {
+        setTimeout(() => {
+          initInteractiveMap();
+          if (map) map.invalidateSize();
+        }, 200);
+      }
+    }
 
-                <div class="form-group">
-                    <label class="form-label">Location</label>
-                    <select class="form-control" id="locationDropdown" onchange="handleLocationChange(this.value)">
-                        <option value="" disabled selected>Select location...</option>
-                        <option value="exact">📍 Exact Location (Auto-detect GPS)</option>
-                        <optgroup label="Saved Spots" id="savedSpotsGroup">
-                            <option value="Richards Bay Pier">Richards Bay Pier</option>
-                            <option value="Alkantstrand Beach">Alkantstrand Beach</option>
-                            <option value="Pelican Island">Pelican Island</option>
-                        </optgroup>
-                        <option value="custom">✏️ Write custom location...</option>
-                    </select>
-                </div>
+    function closeModal(id) { 
+      if (isMapFullscreen) toggleMapFullscreen();
+      document.getElementById(id).style.display = 'none'; 
+    }
 
-                <!-- Custom Location Text Input -->
-                <div class="form-group hidden" id="customLocationGroup">
-                    <label class="form-label">Enter Custom Location Name</label>
-                    <input type="text" class="form-control" id="customLocationInput" placeholder="e.g. Oban Point Rocks">
-                </div>
+    function loadSpeciesOptions() {
+      const customSpecs = JSON.parse(localStorage.getItem('customSpecies') || '[]');
+      const all = [...defaultSpecies, ...customSpecs];
+      document.getElementById('logSpeciesSelect').innerHTML = all.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+    }
 
-                <!-- Save New Location Checkbox (Appears after entering/selecting a custom location) -->
-                <div class="form-group hidden" id="saveNewLocationGroup">
-                    <label style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; cursor: pointer; color: var(--text-main);">
-                        <input type="checkbox" id="saveNewLocationCheckbox" style="accent-color: var(--accent-color); width: 16px; height: 16px;">
-                        Save this as a new permanent location spot
-                    </label>
-                </div>
+    function saveCustomSpecies() {
+      const name = document.getElementById('custName').value.trim();
+      const env = document.getElementById('custEnv').value;
+      const minTemp = parseFloat(document.getElementById('custMinTemp').value) || 18;
+      const maxTemp = parseFloat(document.getElementById('custMaxTemp').value) || 24;
+      const tidePref = document.getElementById('custTidePref').value;
+      const timePref = document.getElementById('custTimePref').value;
+      const maxSwell = parseFloat(document.getElementById('custMaxSwell').value) || 2.2;
+      const maxWind = parseFloat(document.getElementById('custMaxWind').value) || 25;
+      const baroPref = document.getElementById('custBaroPref').value;
 
-                <div class="form-group">
-                    <label class="form-label">Attach Photo</label>
-                    <input type="file" class="form-control" style="padding: 6px;" accept="image/*">
-                </div>
+      if (!name) { alert('Please enter a species name.'); return; }
 
-                <div class="modal-buttons">
-                    <button type="submit" class="btn btn-primary">💾 Save Catch</button>
-                    <button type="button" class="btn btn-secondary" onclick="closeLogModal()">Cancel</button>
-                </div>
-            </form>
-        </div>
-    </div>
+      const customSpecs = JSON.parse(localStorage.getItem('customSpecies') || '[]');
+      customSpecs.push({
+        id: Date.now(),
+        name, env, minTemp, maxTemp, tidePref, timePref, maxSwell, maxWind, baroPref
+      });
+      localStorage.setItem('customSpecs', JSON.stringify(customSpecs));
 
-    <script>
-        function openLogModal() {
-            document.getElementById('logModal').classList.add('active');
-        }
+      closeModal('customModal');
+      loadSpeciesOptions();
+      calculateScores();
+      alert(`Species "${name}" added with custom environmental profile!`);
+    }
 
-        function closeLogModal() {
-            document.getElementById('logModal').classList.remove('active');
-            resetForm();
-        }
-
-        function handleLocationChange(value) {
-            const customGroup = document.getElementById('customLocationGroup');
-            const saveNewGroup = document.getElementById('saveNewLocationGroup');
-            const customInput = document.getElementById('customLocationInput');
-
-            if (value === 'exact') {
-                customGroup.classList.add('hidden');
-                saveNewGroup.classList.add('hidden');
-                customInput.value = '';
-                if (navigator.geolocation) {
-                    navigator.geolocation.getCurrentPosition(
-                        (position) => {
-                            alert(`GPS Location Acquired: Lat ${position.coords.latitude.toFixed(4)}, Lng ${position.coords.longitude.toFixed(4)}`);
-                        },
-                        () => {
-                            alert('Unable to retrieve your exact GPS location. Please check permissions.');
-                        }
-                    );
-                } else {
-                    alert('Geolocation is not supported by your browser.');
-                }
-            } else if (value === 'custom') {
-                customGroup.classList.remove('hidden');
-                saveNewGroup.classList.remove('hidden');
-                customInput.focus();
-            } else {
-                // Saved spot selected
-                customGroup.classList.add('hidden');
-                saveNewGroup.classList.add('hidden');
-                customInput.value = '';
-            }
-        }
-
-        function handleSaveCatch(event) {
-            event.preventDefault();
-            const locationDropdown = document.getElementById('locationDropdown').value;
-            const customInput = document.getElementById('customLocationInput').value;
-            const shouldSaveNew = document.getElementById('saveNewLocationCheckbox').checked;
-
-            if (locationDropdown === 'custom' && shouldSaveNew && customInput.trim() !== '') {
-                // Dynamically add to saved spots group for session persistence
-                const savedGroup = document.getElementById('savedSpotsGroup');
-                const newOption = document.createElement('option');
-                newOption.value = customInput.trim();
-                newOption.text = customInput.trim();
-                savedGroup.appendChild(newOption);
-                alert(`New location "${customInput.trim()}" saved successfully!`);
-            }
-
-            alert('Catch logged successfully!');
-            closeLogModal();
-        }
-
-        function resetForm() {
-            document.getElementById('catchForm').reset();
-            document.getElementById('customLocationGroup').classList.add('hidden');
-            document.getElementById('saveNewLocationGroup').classList.add('hidden');
-        }
-
-        // Close modal when clicking outside of it
-        window.onclick = function(event) {
-            const modal = document.getElementById('logModal');
-            if (event.target === modal) {
-                closeLogModal();
-            }
-        }
-    </script>
+    function useGPS() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(pos => {
+          const opt = document.createElement('option');
+          opt.value = `${pos.coords.latitude.toFixed(2)},${pos.coords.longitude.toFixed(2)}`;
+          opt.innerText = "🎯 Live GPS Position";
+          opt.selected = true;
+          document.getElementById('locationSelect').appendChild(opt);
+          fetchForecast();
+        });
+      }
+    }
+  </script>
 </body>
 </html>
