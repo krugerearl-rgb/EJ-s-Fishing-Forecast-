@@ -81,9 +81,11 @@
     .score-poor { background: var(--poor); }
     
     .time-window { font-size: 0.85rem; color: #00b4d8; font-weight: 600; margin-bottom: 8px; display: flex; align-items: center; gap: 5px; }
+    .time-window.night-window { color: #9d4edd; }
     .badge-container { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; }
     .badge { font-size: 0.7rem; background: rgba(255,255,255,0.1); padding: 3px 8px; border-radius: 12px; color: var(--text); }
     .badge-sun { background: rgba(255,183,3,0.2); color: #ffb703; }
+    .badge-night { background: rgba(157,78,221,0.25); color: #c77dff; border: 1px solid rgba(157,78,221,0.4); }
     .species-desc { font-size: 0.8rem; color: var(--text-muted); line-height: 1.3; }
 
     /* Modals */
@@ -193,13 +195,18 @@
       </div>
 
       <div class="info-section">
+        <h4>🌙 Night-Time Fishing Engine & Optimal Hours</h4>
+        <p>Certain target predators (like Dusky Kob, Rockcod, and Speckled Snapper) feed heavily under dark cover. The engine analyzes nocturnal conditions—including pressure drops, wind comfort, and tide alignment after sunset—to display dedicated <strong>🌙 Night Peak</strong> feeding windows (e.g., 07:00 PM – 11:30 PM) and bonus confidence ratings.</p>
+      </div>
+
+      <div class="info-section">
         <h4>🎯 Dynamic Species Scoring Engine</h4>
         <p>Each target fish has ideal environmental thresholds. The app calculates a score out of 100 by matching current weather checks against preferred species habits.</p>
       </div>
 
       <div class="info-section">
         <h4>🔍 Custom Species Fine-Tuning & Auto-Fill</h4>
-        <p>When adding a custom target fish, you can fine-tune specific tidal stages (Rising, High, Ebb, Low), low-light peaks (Dawn/Dusk/Night), max swell limits, wind speed limits, and barometric pressure trends. Use the <strong>"🔍 Auto-Fill Profile"</strong> button to quickly search and populate scientific baseline profiles automatically!</p>
+        <p>When adding a custom target fish, you can specify tidal stages, light & night preferences (Dawn/Dusk, Daylight, or Night Fishing), maximum swell limits, wind caps, and barometric pressure trends. Use <strong>"🔍 Auto-Fill Profile"</strong> to instantly fetch scientific baseline profiles including nocturnal preferences!</p>
       </div>
 
       <div class="info-section">
@@ -225,10 +232,10 @@
       <div class="form-group" style="background: rgba(0, 180, 216, 0.1); padding: 10px; border-radius: 8px; border: 1px solid var(--accent);">
         <label style="color: var(--accent); font-weight: bold;">🔍 QUICK LOOKUP & AUTO-FILL</label>
         <div style="display:flex; gap:6px; margin-top:4px;">
-          <input type="text" id="custName" placeholder="e.g. Bronze Bream, Blacktail, Kingfish">
+          <input type="text" id="custName" placeholder="e.g. Bronze Bream, Kob, Rockcod, Blacktail">
           <button type="button" onclick="quickSearchSpecies()" style="flex:none; padding:8px 10px; font-size:0.75rem; background: var(--accent); color:#000;">🔍 Auto-Fill Profile</button>
         </div>
-        <small id="lookupStatus" style="color: var(--text-muted); font-size: 0.7rem; display: block; margin-top: 4px;">Type fish name and tap Auto-Fill to fetch ideal temp, tides, & light settings.</small>
+        <small id="lookupStatus" style="color: var(--text-muted); font-size: 0.7rem; display: block; margin-top: 4px;">Type fish name and tap Auto-Fill to fetch ideal temp, tides, daylight or night preferences.</small>
       </div>
 
       <!-- Detailed Environmental Profiles -->
@@ -261,12 +268,12 @@
       </div>
 
       <div class="form-group">
-        <label>Activity Light / Time Window</label>
+        <label>Activity Light / Night Fishing Preference</label>
         <select id="custTimePref">
+          <option value="night">🌙 Night / Dark Hours (Optimal Nocturnal Feeding)</option>
           <option value="dusk">🌅 Dawn & Dusk (Low Light Peaks)</option>
           <option value="day">☀️ Daylight Active</option>
-          <option value="night">🌙 Night / Dark Hours</option>
-          <option value="any">⏰ All Day Active</option>
+          <option value="any">⏰ All Day & Night Active</option>
         </select>
       </div>
 
@@ -381,16 +388,18 @@
     let map, mapMarker;
     let isMapFullscreen = false;
 
-    // Database of Common Species Profiles for Quick Auto-Fill Search
+    // Database of Common Species Profiles for Quick Auto-Fill Search (Includes Night Fishing preferences)
     const speciesKnowledgeBase = {
+      'kob': { env: 'both', minTemp: 18, maxTemp: 23, tide: 'high', time: 'night', maxSwell: 2.0, maxWind: 25, baro: 'falling' },
+      'cob': { env: 'both', minTemp: 18, maxTemp: 23, tide: 'high', time: 'night', maxSwell: 2.0, maxWind: 25, baro: 'falling' },
+      'rockcod': { env: 'surf', minTemp: 19, maxTemp: 25, tide: 'low', time: 'night', maxSwell: 1.8, maxWind: 20, baro: 'steady' },
+      'speckled snapper': { env: 'harbour', minTemp: 20, maxTemp: 26, tide: 'high', time: 'night', maxSwell: 1.5, maxWind: 20, baro: 'falling' },
       'blacktail': { env: 'surf', minTemp: 17, maxTemp: 23, tide: 'rising', time: 'dusk', maxSwell: 2.5, maxWind: 28, baro: 'steady' },
       'dassie': { env: 'surf', minTemp: 17, maxTemp: 23, tide: 'rising', time: 'dusk', maxSwell: 2.5, maxWind: 28, baro: 'steady' },
       'bronze bream': { env: 'surf', minTemp: 16, maxTemp: 21, tide: 'rising', time: 'day', maxSwell: 2.0, maxWind: 22, baro: 'steady' },
       'kingfish': { env: 'both', minTemp: 21, maxTemp: 27, tide: 'rising', time: 'dusk', maxSwell: 1.8, maxWind: 20, baro: 'falling' },
       'gt': { env: 'surf', minTemp: 22, maxTemp: 28, tide: 'rising', time: 'dusk', maxSwell: 2.0, maxWind: 22, baro: 'falling' },
-      'speckled snapper': { env: 'harbour', minTemp: 20, maxTemp: 26, tide: 'high', time: 'night', maxSwell: 1.5, maxWind: 20, baro: 'falling' },
-      'stumpnose': { env: 'surf', minTemp: 18, maxTemp: 24, tide: 'rising', time: 'dusk', maxSwell: 2.2, maxWind: 25, baro: 'steady' },
-      'rockcod': { env: 'surf', minTemp: 19, maxTemp: 25, tide: 'low', time: 'night', maxSwell: 1.8, maxWind: 20, baro: 'steady' },
+      'stumpnose': { env: 'surf', minTemp: 18, maxTemp: 24, tide: 'rising', time: 'night', maxSwell: 2.2, maxWind: 25, baro: 'steady' },
       'bonefish': { env: 'harbour', minTemp: 22, maxTemp: 27, tide: 'rising', time: 'day', maxSwell: 1.2, maxWind: 18, baro: 'steady' },
       'pompano': { env: 'surf', minTemp: 20, maxTemp: 25, tide: 'high', time: 'day', maxSwell: 1.8, maxWind: 20, baro: 'steady' }
     };
@@ -404,7 +413,7 @@
     ];
 
     let defaultSpecies = [
-      { id: 'kob', name: 'Dusky Kob (Cob)', env: 'both', minTemp: 18, maxTemp: 23, tidePref: 'high', timePref: 'dusk', maxSwell: 2.0, maxWind: 25, baroPref: 'falling' },
+      { id: 'kob', name: 'Dusky Kob (Cob)', env: 'both', minTemp: 18, maxTemp: 23, tidePref: 'high', timePref: 'night', maxSwell: 2.0, maxWind: 25, baroPref: 'falling' },
       { id: 'flathead', name: 'Bartail Flathead', env: 'harbour', minTemp: 20, maxTemp: 26, tidePref: 'ebb', timePref: 'day', maxSwell: 1.5, maxWind: 20, baroPref: 'steady' },
       { id: 'grunter', name: 'Spotted Grunter', env: 'harbour', minTemp: 20, maxTemp: 26, tidePref: 'rising', timePref: 'dusk', maxSwell: 1.2, maxWind: 20, baroPref: 'falling' },
       { id: 'shad', name: 'Shad (Elf)', env: 'surf', minTemp: 19, maxTemp: 24, tidePref: 'high', timePref: 'dusk', maxSwell: 2.5, maxWind: 30, baroPref: 'steady' },
@@ -424,7 +433,7 @@
       document.getElementById('gpsBtn').addEventListener('click', useGPS);
     });
 
-    // Quick Lookup / Auto-fill Species Logic
+    // Quick Lookup / Auto-fill Species Logic (Includes Night-Time Auto fill)
     function quickSearchSpecies() {
       const query = document.getElementById('custName').value.toLowerCase().trim();
       const status = document.getElementById('lookupStatus');
@@ -457,7 +466,7 @@
         document.getElementById('custMaxWind').value = match.maxWind;
         document.getElementById('custBaroPref').value = match.baro;
 
-        status.innerText = `✅ Auto-filled profile options for "${query}"!`;
+        status.innerText = `✅ Auto-filled profile options for "${query}" (Time: ${match.time.toUpperCase()})!`;
         status.style.color = "#38b000";
       } else {
         // Fallback default optimal settings for general coastal predators
@@ -742,15 +751,29 @@
 
         let score = 55;
         let bonuses = [];
+        let bestTimeWindow = '⏰ BEST TIME: 05:15 AM - 07:30 AM';
+        let isNightWindow = false;
 
         if (weatherCache.temp >= sp.minTemp && weatherCache.temp <= sp.maxTemp) {
           score += 15; bonuses.push('🌡️ Ideal Temp');
         }
 
-        if (sp.timePref === 'dusk') {
-          score += 15; bonuses.push('🌅 Dawn/Dusk Peak');
+        // Night vs Daylight vs Dawn/Dusk Scoring & Time Windows
+        if (sp.timePref === 'night') {
+          score += 18; 
+          bonuses.push('🌙 Optimal Night Feeding');
+          bestTimeWindow = '🌙 BEST TIME: 07:00 PM - 11:30 PM (Night Peak)';
+          isNightWindow = true;
+        } else if (sp.timePref === 'dusk') {
+          score += 15; 
+          bonuses.push('🌅 Dawn/Dusk Peak');
+          bestTimeWindow = '🌅 BEST TIME: 05:15 AM - 07:30 AM / 05:45 PM - 07:15 PM';
         } else if (sp.timePref === 'day') {
-          score += 10; bonuses.push('☀️ Daylight Active');
+          score += 10; 
+          bonuses.push('☀️ Daylight Active');
+          bestTimeWindow = '☀️ BEST TIME: 08:30 AM - 04:00 PM';
+        } else {
+          bestTimeWindow = '🔄 ALL DAY / NIGHT ACTIVE';
         }
 
         if (parseFloat(weatherCache.waveHeight) <= (sp.maxSwell || 2.5)) {
@@ -775,11 +798,11 @@
               <span class="species-name">${sp.name}</span>
               <span class="species-score ${scoreClass}">${score} / 100</span>
             </div>
-            <div class="time-window">⏰ BEST TIME: 05:15 AM - 07:30 AM</div>
+            <div class="time-window ${isNightWindow ? 'night-window' : ''}">${bestTimeWindow}</div>
             <div class="badge-container">
-              ${bonuses.map(b => `<span class="badge ${b.includes('Dawn')?'badge-sun':''}">${b}</span>`).join('')}
+              ${bonuses.map(b => `<span class="badge ${b.includes('Night')?'badge-night':b.includes('Dawn')?'badge-sun':''}">${b}</span>`).join('')}
             </div>
-            <div class="species-desc">Weather consensus, wave limits, and tide preferences align with profile thresholds.</div>
+            <div class="species-desc">Weather consensus, wave limits, light/night conditions, and tide preferences align with profile thresholds.</div>
           </div>
         `;
       });
